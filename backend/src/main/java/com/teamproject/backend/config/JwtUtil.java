@@ -15,8 +15,7 @@ public class JwtUtil {
     // In production, load this from an environment variable, not hardcoded.
     // For now, this is a placeholder secret — replace with a real env var (JWT_SECRET) before demo.
     private final SecretKey secretKey = Keys.hmacShaKeyFor(
-            "pathopia-super-secret-key-change-this-before-demo-1234567890".getBytes()
-    );
+            System.getenv("JWT_SECRET").getBytes());
 
     private final long EXPIRATION_TIME = 1000 * 60 * 60 * 24; // 24 hours
 
