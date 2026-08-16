@@ -8,4 +8,18 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    watch: {
+      // OneDrive syncs this repo and briefly creates `~*.tmp` sibling files
+      // while syncing; without this, Vite's fs watcher can hit an EBUSY on
+      // those transient files and crash the whole dev server process.
+      ignored: ['**/~*.tmp'],
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
+  },
 })
