@@ -1,6 +1,6 @@
 import logoFull from '../assets/landing/logo-full.png'
 
-function Navbar() {
+function PublicNavbar() {
   return (
     <nav className="landing-nav">
       <img src={logoFull} alt="Pathopia" className="landing-nav__logo" />
