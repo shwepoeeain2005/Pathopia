@@ -1,11 +1,62 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react';
 import bgImage from '../assets/landing/hero-background.png';
+import { login, register } from '../lib/auth';
 
 const PathopiaLogin = () => {
+    const navigate = useNavigate();
+
     const [isSignIn, setIsSignIn] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    const [fullName, setFullName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+
+    const [error, setError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const switchMode = (signIn) => {
+        setIsSignIn(signIn);
+        setError('');
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+
+        if (!email.trim() || !password.trim() || (!isSignIn && !fullName.trim())) {
+            setError('Please fill in all fields.');
+            return;
+        }
+
+        if (!isSignIn && password !== confirmPassword) {
+            setError('Passwords do not match.');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const result = isSignIn
+                ? await login({ email, password })
+                : await register({ fullName, email, password });
+
+            localStorage.setItem('authToken', result.token);
+            localStorage.setItem('userId', result.userId);
+            localStorage.setItem('fullName', result.fullName);
+            localStorage.setItem('userEmail', result.email);
+
+            // TODO: point at /dashboard once that route exists
+            navigate('/');
+        } catch (err) {
+            setError(err.message || 'Something went wrong. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     return (
         <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-slate-950 font-sans">
@@ -58,27 +109,30 @@ const PathopiaLogin = () => {
                     <div className="flex border-b border-white/15 mb-6 relative">
                         <button
                             type="button"
-                            onClick={() => setIsSignIn(true)}
+                            onClick={() => switchMode(true)}
                             className={`flex-1 pb-3 text-sm font-bold transition-all ${isSignIn ? 'text-amber-300 border-b-2 border-amber-300' : 'text-white/50 hover:text-white'}`}
                         >
                             Sign In
                         </button>
                         <button
                             type="button"
-                            onClick={() => setIsSignIn(false)}
+                            onClick={() => switchMode(false)}
                             className={`flex-1 pb-3 text-sm font-bold transition-all ${!isSignIn ? 'text-amber-300 border-b-2 border-amber-300' : 'text-white/50 hover:text-white'}`}
                         >
                             Sign Up
                         </button>
                     </div>
 
-                    <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+                    <form className="space-y-4" onSubmit={handleSubmit}>
                         {!isSignIn && (
                             <div className="relative">
                                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" />
                                 <input
                                     type="text"
                                     placeholder="Full Name"
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    autoComplete="name"
                                     className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-white/40 focus:outline-none focus:border-amber-300 focus:bg-white/10 transition-all"
                                 />
                             </div>
@@ -89,6 +143,8 @@ const PathopiaLogin = () => {
                             <input
                                 type="email"
                                 placeholder="Email Address"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 autoComplete="email"
                                 className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-white/40 focus:outline-none focus:border-amber-300 focus:bg-white/10 transition-all"
                             />
@@ -99,6 +155,9 @@ const PathopiaLogin = () => {
                             <input
                                 type={showPassword ? "text" : "password"}
                                 placeholder="Password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                autoComplete={isSignIn ? "current-password" : "new-password"}
                                 className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-12 text-white placeholder:text-white/40 focus:outline-none focus:border-amber-300 focus:bg-white/10 transition-all"
                             />
                             <button
@@ -116,6 +175,9 @@ const PathopiaLogin = () => {
                                 <input
                                     type={showConfirmPassword ? "text" : "password"}
                                     placeholder="Confirm Password"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    autoComplete="new-password"
                                     className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-12 text-white placeholder:text-white/40 focus:outline-none focus:border-amber-300 focus:bg-white/10 transition-all"
                                 />
                                 <button
@@ -128,12 +190,21 @@ const PathopiaLogin = () => {
                             </div>
                         )}
 
+                        {error && (
+                            <p className="text-red-300 text-sm bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-2">
+                                {error}
+                            </p>
+                        )}
+
                         <button
                             type="submit"
-                            className="w-full bg-gradient-to-r from-[#d9a94f] via-amber-500 to-[#d9a94f] hover:from-[#e6bd6e] hover:to-[#e6bd6e] text-slate-950 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-500/20 active:scale-[0.98]"
+                            disabled={isSubmitting}
+                            className="w-full bg-gradient-to-r from-[#d9a94f] via-amber-500 to-[#d9a94f] hover:from-[#e6bd6e] hover:to-[#e6bd6e] text-slate-950 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-500/20 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                            {isSignIn ? 'Enter Pathopia' : 'Create Account'}
-                            <ArrowRight className="w-5 h-5" />
+                            {isSubmitting
+                                ? (isSignIn ? 'Signing In...' : 'Creating Account...')
+                                : (isSignIn ? 'Enter Pathopia' : 'Create Account')}
+                            {!isSubmitting && <ArrowRight className="w-5 h-5" />}
                         </button>
                     </form>
 
