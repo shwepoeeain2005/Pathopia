@@ -288,7 +288,7 @@ function Landing() {
 
         <section className="landing-section landing-section--periwinkle">
           <div className="landing-section__heading">
-            <h2>Features</h2>
+            <h2>Our Features</h2>
           </div>
           <div className="landing-features-grid">
             {FEATURES.map((feature, index) => {
@@ -311,8 +311,10 @@ function Landing() {
         </section>
 
         <section className="landing-section landing-section--peach">
+          <div className="landing-section__heading">
+            <h2>About Project</h2>
+          </div>
           <div className="landing-box landing-box--violet">
-            <h2 className="landing-box__title">About Project</h2>
             <p className="landing-box__text">
               Pathopia is a student-built project exploring how simulation
               can make career discovery feel human, honest, and a little

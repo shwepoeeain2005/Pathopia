@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react';
-import bgImage from '../assets/signin-bg2.jpg';
+import bgImage from '../assets/landing/hero-background.png';
 
 const PathopiaLogin = () => {
     const [isSignIn, setIsSignIn] = useState(true);
@@ -39,9 +39,9 @@ const PathopiaLogin = () => {
                         <span>Welcome to Pathopia</span>
                     </div>
 
-                    <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">
+                    <h1 className="font-serif text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">
                         Shape Your <br />
-                        <span className="bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-200 bg-clip-text text-transparent drop-shadow-lg">
+                        <span className="bg-gradient-to-r from-[#d9a94f] via-amber-300 to-[#d9a94f] bg-clip-text text-transparent drop-shadow-lg">
                             Career Journey
                         </span>
                     </h1>
@@ -130,28 +130,10 @@ const PathopiaLogin = () => {
 
                         <button
                             type="submit"
-                            className="w-full bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-500/20 active:scale-[0.98]"
+                            className="w-full bg-gradient-to-r from-[#d9a94f] via-amber-500 to-[#d9a94f] hover:from-[#e6bd6e] hover:to-[#e6bd6e] text-slate-950 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-500/20 active:scale-[0.98]"
                         >
                             {isSignIn ? 'Enter Pathopia' : 'Create Account'}
                             <ArrowRight className="w-5 h-5" />
-                        </button>
-
-                        <div className="flex items-center gap-4 py-1">
-                            <div className="h-px flex-1 bg-white/15" />
-                            <span className="text-xs font-bold text-white/40 uppercase">or</span>
-                            <div className="h-px flex-1 bg-white/15" />
-                        </div>
-
-                        <button
-                            type="button"
-                            className="w-full bg-white/5 hover:bg-white/10 border border-white/15 text-white font-medium py-2.5 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
-                        >
-                            <img
-                                src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png"
-                                alt="Google"
-                                style={{ width: '18px', height: '18px' }}
-                            />
-                            <span className="text-sm">Continue with Google</span>
                         </button>
                     </form>
 

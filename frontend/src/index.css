@@ -1,9 +1,17 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: 'Quicksand', system-ui, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+}
+
 @keyframes slowZoom {
     0% { transform: scale(1); }
     50% { transform: scale(1.08); }
-    100% { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+
+:root {
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
@@ -55,29 +63,36 @@ body {
   background: var(--bg);
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+/* @layer base so Tailwind utility classes (e.g. font-serif, text-6xl) on
+   h1/h2 elements can override these defaults — unlayered rules always
+   beat layered ones regardless of specificity, which was silently
+   clobbering utility classes on any h1/h2 outside a more-specific
+   scoped stylesheet (see PathopiaLogin.jsx). */
+@layer base {
+  h1,
+  h2 {
+    font-family: var(--heading);
+    font-weight: 500;
+    color: var(--text-h);
   }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
+
+  h1 {
+    font-size: 56px;
+    letter-spacing: -1.68px;
+    margin: 32px 0;
+    @media (max-width: 1024px) {
+      font-size: 36px;
+      margin: 20px 0;
+    }
+  }
+  h2 {
+    font-size: 24px;
+    line-height: 118%;
+    letter-spacing: -0.24px;
+    margin: 0 0 8px;
+    @media (max-width: 1024px) {
+      font-size: 20px;
+    }
   }
 }
 p {
