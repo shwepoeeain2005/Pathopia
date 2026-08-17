@@ -29,10 +29,13 @@ public class SimulationRun {
     private String status = "in_progress"; // "in_progress" or "completed" — no grade/tier field
 
     @Column(name = "choices_history", columnDefinition = "TEXT")
-    private String choicesHistory; // JSON array of every choice made, in order
+    private String choicesHistory; // JSON array of every choice made, in order, including behavior data
 
     @Column(name = "accumulated_scores", columnDefinition = "TEXT")
     private String accumulatedScores; // JSON — running trait totals, never shown as a number/grade to the user
+
+    @Column(name = "pause_count")
+    private Integer pauseCount = 0; // how many times the user exited and resumed this run
 
     @Column(name = "ai_reflection", columnDefinition = "TEXT")
     private String aiReflection; // generated reflection text, saved once completed
@@ -107,6 +110,18 @@ public class SimulationRun {
 
     public void setAccumulatedScores(String accumulatedScores) {
         this.accumulatedScores = accumulatedScores;
+    }
+
+    public Integer getPauseCount() {
+        return pauseCount;
+    }
+
+    public void setPauseCount(Integer pauseCount) {
+        this.pauseCount = pauseCount;
+    }
+
+    public void incrementPauseCount() {
+        this.pauseCount = (this.pauseCount == null ? 0 : this.pauseCount) + 1;
     }
 
     public String getAiReflection() {
