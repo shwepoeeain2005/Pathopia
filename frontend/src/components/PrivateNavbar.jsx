@@ -3,8 +3,8 @@ import './PrivateNavbar.css'
 
 const NAV_LINKS = [
   { label: 'Dashboard', href: '#' },
+  { label: 'Career Selection', href: '/career-selection' },
   { label: 'History', href: '#' },
-  { label: 'Career Selection', href: '#' },
   { label: 'About', href: '#' },
 ]
 

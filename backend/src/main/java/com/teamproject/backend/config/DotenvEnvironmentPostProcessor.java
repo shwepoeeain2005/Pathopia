@@ -12,13 +12,30 @@ import java.util.Map;
 
 public class DotenvEnvironmentPostProcessor implements EnvironmentPostProcessor {
 
+    // Depending on how the run is launched (IntelliJ module root vs. repo
+    // root vs. `mvn` from the backend folder), the JVM's working directory
+    // varies. dotenv-java only looks in the working directory by default,
+    // so we try the folders .env could realistically be in and use the
+    // first one that actually has it, instead of silently finding nothing.
+    private static final String[] CANDIDATE_DIRS = { ".", "backend" };
+
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
-        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
-
         Map<String, Object> properties = new HashMap<>();
-        for (DotenvEntry entry : dotenv.entries()) {
-            properties.put(entry.getKey(), entry.getValue());
+
+        for (String dir : CANDIDATE_DIRS) {
+            Dotenv dotenv = Dotenv.configure()
+                    .directory(dir)
+                    .ignoreIfMissing()
+                    .load();
+
+            for (DotenvEntry entry : dotenv.entries()) {
+                properties.put(entry.getKey(), entry.getValue());
+            }
+
+            if (!properties.isEmpty()) {
+                break; // found and loaded a real .env, stop looking
+            }
         }
 
         environment.getPropertySources().addLast(new MapPropertySource("dotenv", properties));
