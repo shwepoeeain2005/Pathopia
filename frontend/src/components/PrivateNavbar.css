@@ -1,0 +1,96 @@
+.private-nav {
+  --plum: #2d2154;
+  --gold: #d9a94f;
+  --cream: #f2e9dc;
+
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Quicksand', system-ui, sans-serif;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 40px;
+  background: var(--plum);
+}
+
+.private-nav__logo {
+  height: 52px;
+  width: auto;
+  display: block;
+}
+
+.private-nav__links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.private-nav__link {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 1rem;
+  color: var(--cream);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.private-nav__link:hover {
+  color: var(--gold);
+}
+
+.private-nav__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.private-nav__icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(242, 233, 220, 0.3);
+  color: var(--cream);
+  text-decoration: none;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.private-nav__icon-button svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.private-nav__icon-button:hover {
+  color: var(--gold);
+  border-color: var(--gold);
+  box-shadow: 0 0 14px rgba(217, 169, 79, 0.4);
+}
+
+@media (max-width: 900px) {
+  .private-nav {
+    flex-wrap: wrap;
+    row-gap: 12px;
+  }
+
+  .private-nav__links {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 16px 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .private-nav {
+    padding: 14px 20px;
+  }
+}

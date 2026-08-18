@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import heroBackground from '../../assets/landing/hero-background.png'
 import backToTopIcon from '../../assets/landing/back-to-top-icon.png'
-import Navbar from '../../components/Navbar.jsx'
+import Navbar from '../../components/PublicNavbar.jsx'
 import Footer from '../../components/Footer.jsx'
 import './Landing.css'
 
