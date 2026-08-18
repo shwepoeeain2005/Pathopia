@@ -16,4 +16,4 @@ function PublicNavbar() {
   )
 }
 
-export default Navbar
+export default PublicNavbar
