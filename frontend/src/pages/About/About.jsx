@@ -1,11 +1,14 @@
-import Navbar from '../../components/PublicNavbar.jsx'
+import PublicNavbar from '../../components/PublicNavbar.jsx'
+import PrivateNavbar from '../../components/PrivateNavbar.jsx'
 import Footer from '../../components/Footer.jsx'
 import '../Landing/Landing.css'
 
 function About() {
+  const isLoggedIn = Boolean(localStorage.getItem('authToken'))
+
   return (
     <div className="landing">
-      <Navbar />
+      {isLoggedIn ? <PrivateNavbar /> : <PublicNavbar />}
 
       <main>
         <section
