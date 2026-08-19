@@ -3,6 +3,7 @@ import Landing from './pages/Landing/Landing';
 import PathopiaLogin from './components/PathopiaLogin';
 import CareerSelection from './pages/CareerSelection/CareerSelection';
 import About from './pages/About/About';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
     return (
@@ -11,8 +12,10 @@ function App() {
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<PathopiaLogin />} />
                 <Route path="/register" element={<PathopiaLogin />} />
-                <Route path="/career-selection" element={<CareerSelection />} />
                 <Route path="/about" element={<About />} />
+                <Route element={<ProtectedRoute />}>
+                    <Route path="/career-selection" element={<CareerSelection />} />
+                </Route>
             </Routes>
         </BrowserRouter>
     );

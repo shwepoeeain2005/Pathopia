@@ -215,7 +215,13 @@
 
 .landing-section__heading h2 {
   font-size: 2rem;
-  color: #f5b400;
+  font-weight: 600;
+  background: linear-gradient(90deg, #e8c58e 0%, #eca950 50%, #e8c58e 100%);
+  background-repeat: no-repeat;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 .landing-section__heading p {
@@ -417,7 +423,7 @@
 }
 
 .landing-footer__logo {
-  height: 60px;
+  height: 72px;
   width: auto;
   display: block;
   margin-bottom: 4px;
