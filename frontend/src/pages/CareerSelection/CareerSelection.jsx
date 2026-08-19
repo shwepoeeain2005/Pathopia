@@ -1,4 +1,6 @@
+import { BarChart2, ClipboardCheck, Code2, PenTool } from 'lucide-react'
 import PrivateNavbar from '../../components/PrivateNavbar.jsx'
+import Footer from '../../components/Footer.jsx'
 import './CareerSelection.css'
 
 const SIMULATION_API_BASE = '/api/simulation'
@@ -12,22 +14,65 @@ const CAREERS = [
     id: 'data-analyst',
     title: 'Data Analyst',
     tagline: 'Turn raw numbers into real decisions.',
+    color: 'pink',
+    icon: BarChart2,
   },
   {
     id: 'project-manager',
     title: 'Project Manager',
     tagline: 'Keep the moving pieces on track.',
+    color: 'blue',
+    icon: ClipboardCheck,
   },
   {
     id: 'software-engineer',
     title: 'Software Engineer',
-    tagline: 'Coming Soon',
-    comingSoon: true,
+    tagline: 'Build the systems people rely on.',
+    color: 'green',
+    icon: Code2,
   },
   {
     id: 'ui-ux-designer',
     title: 'UI/UX Designer',
     tagline: 'Shape how people experience the product.',
+    color: 'orange',
+    icon: PenTool,
+  },
+  {
+    id: 'cyber-security-analyst',
+    title: 'Cybersecurity Analyst',
+    tagline: 'Find the weak spots before attackers do.',
+    comingSoon: true,
+  },
+  {
+    id: 'cloud-engineer',
+    title: 'Cloud Engineer',
+    tagline: 'Build infrastructure that scales without breaking.',
+    comingSoon: true,
+  },
+  {
+    id: 'qa-engineer',
+    title: 'QA Engineer',
+    tagline: 'Catch the bugs before your users do.',
+    comingSoon: true,
+  },
+  {
+    id: 'web-developer',
+    title: 'Web Developer',
+    tagline: 'Bring designs to life in the browser.',
+    comingSoon: true,
+  },
+  {
+    id: 'it-consultant',
+    title: 'IT Consultant',
+    tagline: 'Solve the tech problems clients can\'t.',
+    comingSoon: true,
+  },
+  {
+    id: 'network-engineer',
+    title: 'Network Engineer',
+    tagline: 'Keep the connections running, everywhere.',
+    comingSoon: true,
   },
 ]
 
@@ -94,26 +139,55 @@ function CareerSelection() {
         </p>
 
         <div className="career-selection__grid">
-          {CAREERS.map((career) => (
-            <button
-              key={career.id}
-              type="button"
-              className={`career-card${career.comingSoon ? ' career-card--disabled' : ''}`}
-              onClick={() => !career.comingSoon && handleCareerClick(career)}
-              disabled={career.comingSoon}
-              aria-disabled={career.comingSoon || undefined}
-            >
-              {career.comingSoon && (
-                <span className="career-card__badge">Coming Soon</span>
-              )}
-              <h2 className="career-card__title">{career.title}</h2>
-              {!career.comingSoon && (
+          {CAREERS.map((career) => {
+            if (career.comingSoon) {
+              return (
+                <button
+                  key={career.id}
+                  type="button"
+                  className="career-card career-card--disabled"
+                  disabled
+                  aria-disabled="true"
+                >
+                  <span className="career-card__badge">Coming Soon</span>
+                  <h2 className="career-card__title">{career.title}</h2>
+                </button>
+              )
+            }
+
+            const Icon = career.icon
+
+            return (
+              <div
+                key={career.id}
+                className="career-card career-card--available"
+                data-color={career.color}
+                role="button"
+                tabIndex={0}
+                onClick={() => handleCareerClick(career)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    handleCareerClick(career)
+                  }
+                }}
+              >
+                <div className="career-card__icon">
+                  <Icon size={22} strokeWidth={2.25} />
+                </div>
+                <div className="career-card__heading">
+                  <span className="career-card__dot" />
+                  <h2 className="career-card__title">{career.title}</h2>
+                </div>
                 <p className="career-card__tagline">{career.tagline}</p>
-              )}
-            </button>
-          ))}
+                <span className="career-card__start">Start</span>
+              </div>
+            )
+          })}
         </div>
       </main>
+
+      <Footer />
     </div>
   )
 }
