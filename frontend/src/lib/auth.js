@@ -32,3 +32,10 @@ export async function register({ fullName, email, password }) {
 
     return response.json();
 }
+
+export function logout() {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('fullName');
+    localStorage.removeItem('userEmail');
+}
