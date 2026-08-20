@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import logoFull from '../assets/landing/logo-full.png'
+import ProfileModal from './ProfileModal'
+import SettingsModal from './SettingsModal'
 import './PrivateNavbar.css'
 
 function HomeIcon() {
@@ -67,6 +70,11 @@ function SettingsIcon() {
 }
 
 function PrivateNavbar() {
+  const [activeModal, setActiveModal] = useState(null)
+
+  const closeModal = () => setActiveModal(null)
+  const toggleModal = (name) => setActiveModal((current) => (current === name ? null : name))
+
   return (
     <nav className="private-nav">
       <img src={logoFull} alt="Pathopia" className="private-nav__logo" />
@@ -86,23 +94,28 @@ function PrivateNavbar() {
       </div>
 
       <div className="private-nav__actions">
-        <a
-          href="#"
+        <button
+          type="button"
+          onClick={() => toggleModal('profile')}
           className="private-nav__icon-button"
           aria-label="Profile"
         >
           <ProfileIcon />
           <span className="private-nav__tooltip">Profile</span>
-        </a>
-        <a
-          href="#"
+        </button>
+        <button
+          type="button"
+          onClick={() => toggleModal('settings')}
           className="private-nav__icon-button"
           aria-label="Settings"
         >
           <SettingsIcon />
           <span className="private-nav__tooltip">Settings</span>
-        </a>
+        </button>
       </div>
+
+      {activeModal === 'profile' && <ProfileModal onClose={closeModal} />}
+      {activeModal === 'settings' && <SettingsModal onClose={closeModal} />}
     </nav>
   )
 }
