@@ -1,7 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { ChevronDown, X } from 'lucide-react'
-import { logout } from '../lib/auth'
 
 const LANGUAGES = [
   { value: 'en', label: 'English' },
@@ -24,15 +22,10 @@ function Toggle({ checked, onChange, label }) {
 }
 
 function SettingsModal({ onClose }) {
-  const navigate = useNavigate()
   const [music, setMusic] = useState(true)
   const [soundEffects, setSoundEffects] = useState(true)
   const [language, setLanguage] = useState('en')
-
-  const handleLogout = () => {
-    logout()
-    navigate('/')
-  }
+  const [darkMode, setDarkMode] = useState(true)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -72,6 +65,15 @@ function SettingsModal({ onClose }) {
           </div>
 
           <div className="flex items-center justify-between py-2">
+            <span className="text-base font-normal tracking-wide">Dark Mode</span>
+            <Toggle
+              checked={darkMode}
+              onChange={() => setDarkMode((v) => !v)}
+              label="Dark Mode"
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-2">
             <span className="text-base font-normal tracking-wide">Language</span>
             <div className="relative w-44">
               <select
@@ -91,15 +93,6 @@ function SettingsModal({ onClose }) {
             </div>
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="w-full py-4 rounded-xl font-medium text-sm tracking-wide shadow-lg transition-all duration-300 ease-in-out hover:scale-[1.02] hover:shadow-[0_0_25px_rgba(217,169,79,0.6)]"
-          style={{ backgroundColor: '#d9a94f', color: '#14102b' }}
-        >
-          Logout
-        </button>
       </div>
     </div>
   )
