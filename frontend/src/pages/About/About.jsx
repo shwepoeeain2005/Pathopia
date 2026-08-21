@@ -7,13 +7,13 @@ function About() {
   const isLoggedIn = Boolean(localStorage.getItem('authToken'))
 
   return (
-    <div className="landing">
+    <div className={isLoggedIn ? 'landing landing--private-nav' : 'landing'}>
       {isLoggedIn ? <PrivateNavbar /> : <PublicNavbar />}
 
       <main>
         <section
           className="landing-section landing-section--periwinkle"
-          style={{ paddingTop: 160 }}
+          style={{ paddingTop: isLoggedIn ? 150 : 160 }}
         >
           <div className="landing-section__heading">
             <h2>About Pathopia</h2>

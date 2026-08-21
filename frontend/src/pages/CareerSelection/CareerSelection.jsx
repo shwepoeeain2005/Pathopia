@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BarChart2, ClipboardCheck, Code2, PenTool } from 'lucide-react'
 import PrivateNavbar from '../../components/PrivateNavbar.jsx'
 import Footer from '../../components/Footer.jsx'
@@ -127,10 +128,54 @@ async function handleCareerClick(career) {
   }
 }
 
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" />
+      <path d="M20 20 L16.2 16.2" />
+    </svg>
+  )
+}
+
+function ClearIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path d="M6 6 L18 18 M18 6 L6 18" />
+    </svg>
+  )
+}
+
 function CareerSelection() {
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const filteredCareers = CAREERS.filter((career) =>
+    career.title.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+  )
+
   return (
     <div className="career-selection">
       <PrivateNavbar />
+
+      <label className="career-selection__search">
+        <SearchIcon />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder="Search careers..."
+          aria-label="Search careers"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            className="career-selection__search-clear"
+            onClick={() => setSearchQuery('')}
+            aria-label="Clear search"
+          >
+            <ClearIcon />
+          </button>
+        )}
+      </label>
 
       <main className="career-selection__main">
         <h1 className="career-selection__heading">Choose Your Path</h1>
@@ -138,53 +183,59 @@ function CareerSelection() {
           Pick a career to step into its simulation.
         </p>
 
-        <div className="career-selection__grid">
-          {CAREERS.map((career) => {
-            if (career.comingSoon) {
+        {filteredCareers.length === 0 ? (
+          <p className="career-selection__no-results">
+            No careers match &ldquo;{searchQuery}&rdquo;.
+          </p>
+        ) : (
+          <div className="career-selection__grid">
+            {filteredCareers.map((career) => {
+              if (career.comingSoon) {
+                return (
+                  <button
+                    key={career.id}
+                    type="button"
+                    className="career-card career-card--disabled"
+                    disabled
+                    aria-disabled="true"
+                  >
+                    <span className="career-card__badge">Coming Soon</span>
+                    <h2 className="career-card__title">{career.title}</h2>
+                  </button>
+                )
+              }
+
+              const Icon = career.icon
+
               return (
-                <button
+                <div
                   key={career.id}
-                  type="button"
-                  className="career-card career-card--disabled"
-                  disabled
-                  aria-disabled="true"
+                  className="career-card career-card--available"
+                  data-color={career.color}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleCareerClick(career)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      handleCareerClick(career)
+                    }
+                  }}
                 >
-                  <span className="career-card__badge">Coming Soon</span>
-                  <h2 className="career-card__title">{career.title}</h2>
-                </button>
+                  <div className="career-card__icon">
+                    <Icon size={22} strokeWidth={2.25} />
+                  </div>
+                  <div className="career-card__heading">
+                    <span className="career-card__dot" />
+                    <h2 className="career-card__title">{career.title}</h2>
+                  </div>
+                  <p className="career-card__tagline">{career.tagline}</p>
+                  <span className="career-card__start">Start</span>
+                </div>
               )
-            }
-
-            const Icon = career.icon
-
-            return (
-              <div
-                key={career.id}
-                className="career-card career-card--available"
-                data-color={career.color}
-                role="button"
-                tabIndex={0}
-                onClick={() => handleCareerClick(career)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault()
-                    handleCareerClick(career)
-                  }
-                }}
-              >
-                <div className="career-card__icon">
-                  <Icon size={22} strokeWidth={2.25} />
-                </div>
-                <div className="career-card__heading">
-                  <span className="career-card__dot" />
-                  <h2 className="career-card__title">{career.title}</h2>
-                </div>
-                <p className="career-card__tagline">{career.tagline}</p>
-                <span className="career-card__start">Start</span>
-              </div>
-            )
-          })}
-        </div>
+            })}
+          </div>
+        )}
       </main>
 
       <Footer />

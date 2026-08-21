@@ -9,6 +9,7 @@
   --font-sans: 'Quicksand', system-ui, sans-serif;
 
   min-height: 100vh;
+  padding-left: 236px;
   font-family: var(--font-sans);
   color: var(--cream);
   background:
@@ -21,10 +22,85 @@
   box-sizing: border-box;
 }
 
+.career-selection__search {
+  position: fixed;
+  top: 24px;
+  left: 268px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(260px, calc(100vw - 268px - 220px));
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: linear-gradient(120deg, #ffe4ef 0%, #dcecff 100%);
+  box-shadow: 0 10px 24px rgba(20, 16, 43, 0.12);
+  color: var(--plum);
+}
+
+.career-selection__search svg {
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.6;
+}
+
+.career-selection__search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--plum);
+}
+
+.career-selection__search input::placeholder {
+  color: rgba(45, 33, 84, 0.55);
+  font-weight: 500;
+}
+
+.career-selection__search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--plum);
+  cursor: pointer;
+}
+
+.career-selection__search-clear svg {
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.career-selection__search-clear:hover svg,
+.career-selection__search-clear:focus-visible svg {
+  opacity: 1;
+}
+
+@media (max-width: 640px) {
+  .career-selection__search {
+    left: 92px;
+    width: calc(100vw - 92px - 90px);
+  }
+}
+
 .career-selection__main {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 64px 32px 96px;
+  padding: 150px 32px 96px;
   text-align: center;
 }
 
@@ -48,6 +124,12 @@
   opacity: 0.8;
 }
 
+.career-selection__no-results {
+  padding: 48px 0;
+  color: var(--plum);
+  opacity: 0.7;
+}
+
 .career-selection__grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -61,7 +143,7 @@
   border: 2px solid transparent;
   border-radius: 22px;
   padding: 30px 26px;
-  height: 240px;
+  min-height: 240px;
   cursor: pointer;
   font-family: inherit;
   text-align: left;
@@ -218,6 +300,10 @@
 }
 
 @media (max-width: 640px) {
+  .career-selection {
+    padding-left: 76px;
+  }
+
   .career-selection__grid {
     grid-template-columns: 1fr;
   }
