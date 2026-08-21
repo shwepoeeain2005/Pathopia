@@ -49,8 +49,7 @@ const PathopiaLogin = () => {
             localStorage.setItem('fullName', result.fullName);
             localStorage.setItem('userEmail', result.email);
 
-            // TODO: point at /dashboard once that route exists
-            navigate('/career-selection');
+            navigate('/dashboard');
         } catch (err) {
             setError(err.message || 'Something went wrong. Please try again.');
         } finally {

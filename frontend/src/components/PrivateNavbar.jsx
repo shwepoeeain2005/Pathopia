@@ -47,7 +47,7 @@ function InfoIcon() {
 }
 
 const NAV_LINKS = [
-  { label: 'Dashboard', href: '#', icon: HomeIcon },
+  { label: 'Dashboard', href: '/dashboard', icon: HomeIcon },
   { label: 'Career Selection', href: '/career-selection', icon: CompassStarIcon },
   { label: 'History', href: '#', icon: HistoryIcon },
   { label: 'About', href: '/about', icon: InfoIcon },
