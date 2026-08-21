@@ -43,6 +43,16 @@
   text-decoration: none;
 }
 
+.landing--private-nav {
+  padding-left: 236px;
+}
+
+@media (max-width: 640px) {
+  .landing--private-nav {
+    padding-left: 76px;
+  }
+}
+
 /* Nav bar */
 
 .landing-nav {

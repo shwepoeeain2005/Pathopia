@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import logoFull from '../assets/landing/logo-full.png'
+import { logout } from '../lib/auth'
 import ProfileModal from './ProfileModal'
 import SettingsModal from './SettingsModal'
 import './PrivateNavbar.css'
@@ -69,54 +71,83 @@ function SettingsIcon() {
   )
 }
 
+function LogoutIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3" />
+      <path d="M16 16l4-4-4-4" />
+      <path d="M20 12H9" />
+    </svg>
+  )
+}
+
 function PrivateNavbar() {
+  const navigate = useNavigate()
   const [activeModal, setActiveModal] = useState(null)
+  const userName = localStorage.getItem('fullName') || 'Your Profile'
 
   const closeModal = () => setActiveModal(null)
   const toggleModal = (name) => setActiveModal((current) => (current === name ? null : name))
 
+  const handleLogout = () => {
+    logout()
+    navigate('/')
+  }
+
   return (
-    <nav className="private-nav">
-      <img src={logoFull} alt="Pathopia" className="private-nav__logo" />
-
-      <div className="private-nav__links">
-        {NAV_LINKS.map((link) => (
-          <a
-            key={link.label}
-            href={link.href}
-            className="private-nav__icon-button"
-            aria-label={link.label}
-          >
-            <link.icon />
-            <span className="private-nav__tooltip">{link.label}</span>
-          </a>
-        ))}
-      </div>
-
-      <div className="private-nav__actions">
-        <button
-          type="button"
-          onClick={() => toggleModal('profile')}
-          className="private-nav__icon-button"
-          aria-label="Profile"
-        >
+    <>
+      <button
+        type="button"
+        onClick={() => toggleModal('profile')}
+        className="private-nav__profile private-nav__profile--floating"
+      >
+        <span className="private-nav__avatar">
           <ProfileIcon />
-          <span className="private-nav__tooltip">Profile</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => toggleModal('settings')}
-          className="private-nav__icon-button"
-          aria-label="Settings"
-        >
-          <SettingsIcon />
-          <span className="private-nav__tooltip">Settings</span>
-        </button>
-      </div>
+        </span>
+        <span className="private-nav__profile-name">{userName}</span>
+      </button>
+
+      <nav className="private-nav">
+        <img src={logoFull} alt="Pathopia" className="private-nav__logo" />
+
+        <div className="private-nav__links">
+          {NAV_LINKS.map((link) => (
+            <a key={link.label} href={link.href} className="private-nav__item">
+              <span className="private-nav__item-icon">
+                <link.icon />
+              </span>
+              <span className="private-nav__item-label">{link.label}</span>
+            </a>
+          ))}
+        </div>
+
+        <div className="private-nav__actions">
+          <button
+            type="button"
+            onClick={() => toggleModal('settings')}
+            className="private-nav__item private-nav__item--button"
+          >
+            <span className="private-nav__item-icon">
+              <SettingsIcon />
+            </span>
+            <span className="private-nav__item-label">Settings</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="private-nav__item private-nav__item--button"
+          >
+            <span className="private-nav__item-icon">
+              <LogoutIcon />
+            </span>
+            <span className="private-nav__item-label">Logout</span>
+          </button>
+        </div>
+      </nav>
 
       {activeModal === 'profile' && <ProfileModal onClose={closeModal} />}
       {activeModal === 'settings' && <SettingsModal onClose={closeModal} />}
-    </nav>
+    </>
   )
 }
 
