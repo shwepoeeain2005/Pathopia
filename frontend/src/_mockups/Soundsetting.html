@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Pathopia - Sound Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&amp;family=Hanken+Grotesk:wght@400;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed": "#261900",
+                        "on-secondary-fixed-variant": "#523e6a",
+                        "on-tertiary-fixed-variant": "#5d4200",
+                        "primary-fixed": "#ecdcff",
+                        "surface-tint": "#d1beee",
+                        "surface-bright": "#4d3500",
+                        "surface-variant": "#483000",
+                        "surface-container": "#2c1d00",
+                        "inverse-primary": "#675780",
+                        "surface-container-highest": "#483000",
+                        "on-primary": "#37294f",
+                        "surface-container-low": "#271900",
+                        "on-secondary": "#3a2752",
+                        "on-tertiary-container": "#a67a00",
+                        "secondary": "#d6bcf1",
+                        "tertiary-container": "#221600",
+                        "tertiary-fixed": "#ffdea3",
+                        "outline": "#948f98",
+                        "error-container": "#93000a",
+                        "secondary-container": "#54406c",
+                        "on-error-container": "#ffdad6",
+                        "on-secondary-container": "#c7aee2",
+                        "inverse-on-surface": "#422c00",
+                        "on-primary-fixed": "#221439",
+                        "on-tertiary": "#402d00",
+                        "primary-container": "#1e1035",
+                        "surface-container-high": "#3a2600",
+                        "on-surface": "#ffdeaa",
+                        "on-secondary-fixed": "#25123c",
+                        "primary": "#d1beee",
+                        "inverse-surface": "#ffdeaa",
+                        "on-error": "#690005",
+                        "secondary-fixed": "#eedbff",
+                        "tertiary-fixed-dim": "#f7bd3d",
+                        "surface-container-lowest": "#160c00",
+                        "background": "#1d1100",
+                        "surface-dim": "#1d1100",
+                        "on-primary-container": "#8a7aa5",
+                        "on-surface-variant": "#cbc4ce",
+                        "tertiary": "#f7bd3d",
+                        "secondary-fixed-dim": "#d6bcf1",
+                        "outline-variant": "#49454d",
+                        "primary-fixed-dim": "#d1beee",
+                        "on-background": "#ffdeaa",
+                        "on-primary-fixed-variant": "#4e4067",
+                        "error": "#ffb4ab",
+                        "surface": "#1d1100"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Hanken Grotesk", "sans-serif"],
+                        "headline-md": ["Playfair Display", "serif"],
+                        "label-md": ["Hanken Grotesk", "sans-serif"],
+                        "headline-sm": ["Playfair Display", "serif"],
+                        "headline-lg-mobile": ["Playfair Display", "serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined', sans-serif !important;
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        .glass-card {
+            background-color: rgba(30, 16, 53, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(203, 196, 206, 0.15);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-standard-primary {
+            background-color: #f7bd3d;
+            transition: all 0.2s ease;
+        }
+
+        .btn-standard-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-standard-primary:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-secondary-glass {
+            background-color: rgba(84, 64, 108, 0.3);
+            border: 1px solid rgba(214, 188, 241, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary-glass:hover {
+            background-color: rgba(84, 64, 108, 0.5);
+            border-color: rgba(214, 188, 241, 0.4);
+        }
+
+        /* Custom Toggle Switch Styling */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider-track {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.15);
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 9999px;
+            border: 1px solid rgba(214, 188, 241, 0.2);
+        }
+
+        .slider-track:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 2px;
+            bottom: 2px;
+            background-color: #cbc4ce;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 50%;
+        }
+
+        input:checked + .slider-track {
+            background-color: #f7bd3d;
+            border-color: #f7bd3d;
+        }
+
+        input:checked + .slider-track:before {
+            transform: translateX(20px);
+            background-color: #1d1100;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex items-center justify-center relative overflow-hidden font-body-md antialiased px-4">
+
+<div class="w-full max-w-lg">
+<div class="glass-card rounded-[32px] overflow-hidden" style="border: 1px solid rgba(247, 189, 61, 0.3); box-shadow: rgba(0, 0, 0, 0.6) 0px 20px 60px, rgba(247, 189, 61, 0.1) 0px 0px 20px, rgba(255, 255, 255, 0.05) 0px 1px 0px inset;">
+<div class="p-6 sm:p-7 flex flex-col items-center text-center relative">
+
+<button aria-label="Close" class="absolute top-4 right-4 text-on-surface-variant hover:text-tertiary transition-colors p-2 rounded-full hover:bg-white/5">
+<span class="material-symbols-outlined text-2xl">close</span>
+</button>
+
+<div class="w-14 h-14 rounded-full bg-secondary-container/30 flex items-center justify-center mb-3 border border-secondary/10">
+<span class="material-symbols-outlined text-[30px] text-tertiary" style="font-variation-settings: 'FILL' 1">tune</span>
+</div>
+
+<h2 class="font-headline-md text-headline-lg-mobile text-tertiary mb-2">
+    Sound Settings
+</h2>
+<p class="font-body-md text-[14px] leading-5 text-on-surface-variant px-2">
+    Adjust your immersive audio experience.
+</p>
+
+<!-- Toggles Section -->
+<div class="flex flex-col gap-2 mt-5 w-full text-left">
+<!-- Music Toggle -->
+<div class="flex items-center justify-between p-3 rounded-xl bg-secondary-container/20 border border-secondary/10 hover:bg-secondary-container/30 transition-colors">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-xl text-primary" style="font-variation-settings: 'FILL' 1">music_note</span>
+<div class="flex flex-col">
+<span class="text-[17px] font-headline-sm text-on-surface">Music</span>
+<span class="text-[11px] font-label-md text-on-surface-variant">Ambient background tracks</span>
+</div>
+</div>
+<label class="toggle-switch">
+<input id="toggle-music" type="checkbox" checked>
+<span class="slider-track"></span>
+</label>
+</div>
+
+<!-- Sound Effects Toggle -->
+<div class="flex items-center justify-between p-3 rounded-xl bg-secondary-container/20 border border-secondary/10 hover:bg-secondary-container/30 transition-colors">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-xl text-primary">graphic_eq</span>
+<div class="flex flex-col">
+<span class="text-[17px] font-headline-sm text-on-surface">Sound Effects</span>
+<span class="text-[11px] font-label-md text-on-surface-variant">UI interactions and alerts</span>
+</div>
+</div>
+<label class="toggle-switch">
+<input id="toggle-sfx" type="checkbox" checked>
+<span class="slider-track"></span>
+</label>
+</div>
+</div>
+
+<!-- Volume Slider Section -->
+<div class="flex flex-col gap-4 mt-2 p-4 rounded-xl bg-secondary-container/20 border border-secondary/10 w-full text-left">
+<div class="flex items-center justify-between mb-1">
+    <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-tertiary text-2xl">volume_up</span>
+        <span class="text-[17px] font-headline-sm text-on-surface">Master Volume</span>
+    </div>
+    <span id="volume-val" class="text-xl font-bold font-body-md text-tertiary">75%</span>
+</div>
+<div class="w-full flex items-center">
+<input id="volume-slider" aria-label="Master Volume Slider" class="w-full h-1 bg-transparent appearance-none outline-none cursor-pointer" max="100" min="0" type="range" value="75">
+</div>
+</div>
+
+</div>
+
+<!-- Action Buttons -->
+<div class="px-6 pb-6 flex flex-col sm:flex-row gap-3 items-center justify-center w-full">
+<button class="btn-secondary-glass w-full sm:w-1/2 py-3 px-6 rounded-full font-label-md text-label-md text-secondary-fixed-dim flex items-center justify-center gap-2">
+    Cancel
+</button>
+<button class="btn-standard-primary w-full sm:w-1/2 py-3 px-6 rounded-full font-label-md text-label-md text-background flex items-center justify-center gap-2 font-semibold">
+    Apply Changes
+</button>
+</div>
+</div>
+</div>
+
+<script>
+    const slider = document.getElementById('volume-slider');
+    const label = document.getElementById('volume-val');
+    
+    function updateSlider(val) {
+        slider.style.background = `linear-gradient(to right, #f7bd3d ${val}%, rgba(209, 190, 238, 0.2) ${val}%)`;
+        label.textContent = `${val}%`;
+    }
+
+    updateSlider(slider.value);
+    slider.addEventListener('input', function() {
+        updateSlider(this.value);
+    });
+</script>
+
+</body>
+</html>

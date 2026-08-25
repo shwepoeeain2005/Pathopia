@@ -31,9 +31,6 @@ public class SimulationService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    /**
-     * Starts a new simulation run for a user + career.
-     */
     public SimulationRun startNewRun(UUID userId, String careerId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -78,17 +75,14 @@ public class SimulationService {
     }
 
     public Optional<SimulationRun> findUnfinishedRun(UUID userId, String careerId) {
-        return simulationRunRepository.findByUserIdAndCareerIdAndStatus(userId, careerId, "in_progress");
+        return simulationRunRepository.findFirstByUserIdAndCareerIdAndStatusOrderByStartedAtDesc(
+                userId, careerId, "in_progress");
     }
 
     public void deleteRun(UUID runId) {
         simulationRunRepository.deleteById(runId);
     }
 
-    /**
-     * Called when a user re-opens/resumes a run that was previously exited.
-     * Increments pauseCount to track how many times this happened.
-     */
     public SimulationRun recordResume(UUID runId) {
         SimulationRun run = simulationRunRepository.findById(runId)
                 .orElseThrow(() -> new RuntimeException("Simulation run not found"));
@@ -98,10 +92,11 @@ public class SimulationService {
 
     /**
      * Submits a choice for the current scenario in a run.
-     * Calculates time spent and mind-change count from the raw data the
-     * frontend sends, then stores everything in choices_history.
+     * Returns both the updated run AND the reality_text of the choice that
+     * was just picked, so the controller can pass it into the response for
+     * the frontend's Reality popup.
      */
-    public SimulationRun submitChoice(UUID runId, SubmitChoiceRequest request) {
+    public SimulationChoiceResult submitChoice(UUID runId, SubmitChoiceRequest request) {
         SimulationRun run = simulationRunRepository.findById(runId)
                 .orElseThrow(() -> new RuntimeException("Simulation run not found"));
 
@@ -116,7 +111,6 @@ public class SimulationService {
             throw new RuntimeException("This choice does not belong to the current scenario");
         }
 
-        // --- Java calculates the actual behavior metrics here ---
         int timeSpentSeconds = 0;
         if (request.getScenarioLoadedAt() != null && request.getChoiceSubmittedAt() != null) {
             timeSpentSeconds = (int) ((request.getChoiceSubmittedAt() - request.getScenarioLoadedAt()) / 1000);
@@ -127,9 +121,7 @@ public class SimulationService {
         if (clicks != null && !clicks.isEmpty()) {
             changedMindCount = Math.max(0, clicks.size() - 1);
         }
-        // --- end calculation ---
 
-        // 1. Update accumulated trait scores
         try {
             Map<String, Integer> accumulated = objectMapper.readValue(
                     run.getAccumulatedScores(), Map.class);
@@ -144,7 +136,6 @@ public class SimulationService {
             throw new RuntimeException("Failed to update trait scores", e);
         }
 
-        // 2. Append a rich history entry, including behavior data
         try {
             List<Map<String, Object>> history = objectMapper.readValue(
                     run.getChoicesHistory(), List.class);
@@ -163,7 +154,6 @@ public class SimulationService {
             throw new RuntimeException("Failed to update choice history", e);
         }
 
-        // 3. Move to next scenario (or mark complete)
         Scenario next = choice.getNextScenario();
         if (next == null) {
             run.setStatus("completed");
@@ -172,10 +162,15 @@ public class SimulationService {
             run.setCurrentScenario(next);
         }
 
-        return simulationRunRepository.save(run);
+        SimulationRun savedRun = simulationRunRepository.save(run);
+        return new SimulationChoiceResult(savedRun, choice.getRealityText());
     }
 
     public SimulationStateResponse buildStateResponse(SimulationRun run) {
+        return buildStateResponse(run, null);
+    }
+
+    public SimulationStateResponse buildStateResponse(SimulationRun run, String lastRealityText) {
         SimulationStateResponse response = new SimulationStateResponse();
         response.setRunId(run.getId().toString());
         response.setStatus(run.getStatus());
@@ -185,6 +180,7 @@ public class SimulationService {
         Scenario scenario = run.getCurrentScenario();
         response.setScenarioId(scenario.getId());
         response.setScenarioTitle(scenario.getTitle());
+        response.setPhase(scenario.getPhase());
         response.setScenarioSetting(scenario.getSetting());
         response.setBackgroundImageUrl(scenario.getBackgroundImageUrl());
         response.setSituation(scenario.getSituation());
@@ -203,6 +199,26 @@ public class SimulationService {
             response.setAiReflection(run.getAiReflection());
         }
 
+        response.setLastRealityText(lastRealityText);
+
         return response;
+    }
+
+    /**
+     * Simple holder pairing the updated run with the reality_text of the
+     * choice that was just submitted, so the controller has both pieces
+     * needed to build the full response.
+     */
+    public static class SimulationChoiceResult {
+        private final SimulationRun run;
+        private final String realityText;
+
+        public SimulationChoiceResult(SimulationRun run, String realityText) {
+            this.run = run;
+            this.realityText = realityText;
+        }
+
+        public SimulationRun getRun() { return run; }
+        public String getRealityText() { return realityText; }
     }
 }
