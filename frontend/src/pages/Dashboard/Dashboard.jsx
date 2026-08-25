@@ -33,9 +33,14 @@ function Dashboard() {
   const userName = localStorage.getItem('fullName') || 'there'
 
   // No endpoint yet returns "does this user have ANY unfinished run" across
-  // careers (only per-career check-unfinished exists) — defaults to false
-  // until that's built, so this stays honestly disabled rather than faked.
-  const [hasUnfinishedSimulation] = useState(false)
+  // careers (only per-career check-unfinished exists), so this relies on
+  // Simulation.jsx recording the active run's id in localStorage whenever
+  // one is in progress, and clearing it once completed.
+  const [activeRun] = useState(() => {
+    const runId = localStorage.getItem('activeSimulationRunId')
+    const careerTitle = localStorage.getItem('activeSimulationCareerTitle')
+    return runId ? { runId, careerTitle } : null
+  })
 
   return (
     <div className="dashboard">
@@ -63,8 +68,11 @@ function Dashboard() {
             onClick={() => navigate('/career-selection')}
           />
           <DashboardActionButton
-            label="Continue Simulation"
-            disabled={!hasUnfinishedSimulation}
+            label={activeRun ? `Continue ${activeRun.careerTitle}` : 'Continue Simulation'}
+            disabled={!activeRun}
+            onClick={() =>
+              activeRun && navigate('/simulation', { state: { runId: activeRun.runId } })
+            }
           />
           <DashboardActionButton label="Recent History" />
         </div>

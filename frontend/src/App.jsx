@@ -4,6 +4,7 @@ import PathopiaLogin from './components/PathopiaLogin';
 import CareerSelection from './pages/CareerSelection/CareerSelection';
 import Dashboard from './pages/Dashboard/Dashboard';
 import About from './pages/About/About';
+import Simulation from './pages/Simulation/Simulation';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
                 <Route element={<ProtectedRoute />}>
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/career-selection" element={<CareerSelection />} />
+                    <Route path="/simulation" element={<Simulation />} />
                 </Route>
             </Routes>
         </BrowserRouter>

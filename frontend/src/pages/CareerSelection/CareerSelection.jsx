@@ -1,15 +1,15 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { BarChart2, ClipboardCheck, Code2, PenTool } from 'lucide-react'
 import PrivateNavbar from '../../components/PrivateNavbar.jsx'
 import Footer from '../../components/Footer.jsx'
+import ResumeConflictModal from '../../components/ResumeConflictModal.jsx'
+import LoadingScreen from '../../components/LoadingScreen.jsx'
+import { logout } from '../../lib/auth.js'
 import './CareerSelection.css'
 
 const SIMULATION_API_BASE = '/api/simulation'
 
-// NOTE: the `careers` table is empty in the shared dev database right now
-// (no seed data has been added yet), so these ids are placeholders that
-// match the examples in Career.java's comments. Swap them for the real
-// ids once seed data exists.
 const CAREERS = [
   {
     id: 'data-analyst',
@@ -82,50 +82,9 @@ async function parseJsonOrNull(response) {
   return text ? JSON.parse(text) : null
 }
 
-async function handleCareerClick(career) {
-  const token = localStorage.getItem('authToken')
-
-  try {
-    const checkResponse = await fetch(
-      `${SIMULATION_API_BASE}/check-unfinished/${career.id}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    )
-
-    if (!checkResponse.ok) {
-      throw new Error(`check-unfinished failed with status ${checkResponse.status}`)
-    }
-
-    const unfinishedRun = await parseJsonOrNull(checkResponse)
-
-    if (unfinishedRun) {
-      // TODO: replace with the real Resume Conflict modal once it's built.
-      alert(
-        `You have an unfinished ${career.title} simulation. Resume or start new?`,
-      )
-      return
-    }
-
-    const startResponse = await fetch(`${SIMULATION_API_BASE}/start`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ careerId: career.id }),
-    })
-
-    if (!startResponse.ok) {
-      console.error(`start failed with status ${startResponse.status}:`, await startResponse.text())
-      return
-    }
-
-    const startResult = await parseJsonOrNull(startResponse)
-    console.log(startResult)
-  } catch (err) {
-    console.error(err)
-  }
+async function readErrorMessage(response) {
+  const text = await response.text()
+  return text || `Request failed with status ${response.status}`
 }
 
 function SearchIcon() {
@@ -146,11 +105,140 @@ function ClearIcon() {
 }
 
 function CareerSelection() {
+  const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
+  const [conflict, setConflict] = useState(null)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [starting, setStarting] = useState(false)
 
   const filteredCareers = CAREERS.filter((career) =>
     career.title.toLowerCase().includes(searchQuery.trim().toLowerCase()),
   )
+
+  // A missing/expired/invalid token reaches the backend as an anonymous
+  // request, which Spring Security rejects with a bare 403 (no JSON body)
+  // rather than surfacing "you need to log in" — so treat 401/403 here as
+  // "session is stale" and send the user to log back in, instead of
+  // showing a cryptic status-code banner.
+  async function handleFailedResponse(response) {
+    if (response.status === 401 || response.status === 403) {
+      logout()
+      navigate('/login', { state: { sessionExpired: true } })
+      return
+    }
+    setErrorMessage(await readErrorMessage(response))
+  }
+
+  async function startCareer(careerId) {
+    setStarting(true)
+    const token = localStorage.getItem('authToken')
+
+    const startResponse = await fetch(`${SIMULATION_API_BASE}/start`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ careerId }),
+    })
+
+    if (!startResponse.ok) {
+      setStarting(false)
+      await handleFailedResponse(startResponse)
+      return
+    }
+
+    const startResult = await parseJsonOrNull(startResponse)
+    navigate('/simulation', { state: { simulationState: startResult } })
+  }
+
+  async function handleCareerClick(career) {
+    setErrorMessage('')
+    const token = localStorage.getItem('authToken')
+
+    try {
+      const checkResponse = await fetch(
+        `${SIMULATION_API_BASE}/check-unfinished/${career.id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      )
+
+      if (!checkResponse.ok) {
+        await handleFailedResponse(checkResponse)
+        return
+      }
+
+      const unfinishedRun = await parseJsonOrNull(checkResponse)
+
+      if (unfinishedRun) {
+        setConflict({
+          runId: unfinishedRun.runId,
+          currentCareerTitle: unfinishedRun.careerTitle,
+          newCareerId: career.id,
+          newCareerTitle: career.title,
+        })
+        return
+      }
+
+      await startCareer(career.id)
+    } catch (err) {
+      setErrorMessage(err.message || 'Something went wrong. Please try again.')
+    }
+  }
+
+  async function handleResumeConflict() {
+    setErrorMessage('')
+    setStarting(true)
+    const { runId } = conflict
+    const token = localStorage.getItem('authToken')
+
+    try {
+      const resumeResponse = await fetch(`${SIMULATION_API_BASE}/${runId}/resume`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      if (!resumeResponse.ok) {
+        setStarting(false)
+        await handleFailedResponse(resumeResponse)
+        return
+      }
+
+      const resumeResult = await parseJsonOrNull(resumeResponse)
+      setConflict(null)
+      navigate('/simulation', { state: { simulationState: resumeResult } })
+    } catch (err) {
+      setStarting(false)
+      setErrorMessage(err.message || 'Something went wrong. Please try again.')
+    }
+  }
+
+  async function handleStartNewConflict() {
+    setErrorMessage('')
+    setStarting(true)
+    const { runId, newCareerId } = conflict
+
+    try {
+      const token = localStorage.getItem('authToken')
+      const deleteResponse = await fetch(`${SIMULATION_API_BASE}/${runId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      if (!deleteResponse.ok) {
+        setStarting(false)
+        await handleFailedResponse(deleteResponse)
+        return
+      }
+
+      setConflict(null)
+      await startCareer(newCareerId)
+    } catch (err) {
+      setStarting(false)
+      setErrorMessage(err.message || 'Something went wrong. Please try again.')
+    }
+  }
 
   return (
     <div className="career-selection">
@@ -182,6 +270,20 @@ function CareerSelection() {
         <p className="career-selection__subheading">
           Pick a career to step into its simulation.
         </p>
+
+        {errorMessage && (
+          <div className="career-selection__error" role="alert">
+            <span>{errorMessage}</span>
+            <button
+              type="button"
+              onClick={() => setErrorMessage('')}
+              aria-label="Dismiss"
+              className="career-selection__error-dismiss"
+            >
+              <ClearIcon />
+            </button>
+          </div>
+        )}
 
         {filteredCareers.length === 0 ? (
           <p className="career-selection__no-results">
@@ -239,6 +341,18 @@ function CareerSelection() {
       </main>
 
       <Footer />
+
+      {conflict && (
+        <ResumeConflictModal
+          currentCareerName={conflict.currentCareerTitle}
+          newCareerName={conflict.newCareerTitle}
+          onResume={handleResumeConflict}
+          onStartNew={handleStartNewConflict}
+          onCancel={() => setConflict(null)}
+        />
+      )}
+
+      {starting && <LoadingScreen />}
     </div>
   )
 }

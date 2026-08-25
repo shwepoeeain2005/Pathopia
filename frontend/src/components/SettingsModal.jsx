@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ChevronDown, X } from 'lucide-react'
+import { useAudioSettings } from '../hooks/useAudioSettings.js'
 
 const LANGUAGES = [
   { value: 'en', label: 'English' },
@@ -22,8 +23,7 @@ function Toggle({ checked, onChange, label }) {
 }
 
 function SettingsModal({ onClose }) {
-  const [music, setMusic] = useState(true)
-  const [soundEffects, setSoundEffects] = useState(true)
+  const { musicEnabled, sfxEnabled, setMusicEnabled, setSfxEnabled } = useAudioSettings()
   const [language, setLanguage] = useState('en')
   const [darkMode, setDarkMode] = useState(true)
 
@@ -52,14 +52,14 @@ function SettingsModal({ onClose }) {
         <div className="space-y-6 mb-10">
           <div className="flex items-center justify-between py-2">
             <span className="text-base font-normal tracking-wide">Music</span>
-            <Toggle checked={music} onChange={() => setMusic((v) => !v)} label="Music" />
+            <Toggle checked={musicEnabled} onChange={(e) => setMusicEnabled(e.target.checked)} label="Music" />
           </div>
 
           <div className="flex items-center justify-between py-2">
             <span className="text-base font-normal tracking-wide">Sound Effects</span>
             <Toggle
-              checked={soundEffects}
-              onChange={() => setSoundEffects((v) => !v)}
+              checked={sfxEnabled}
+              onChange={(e) => setSfxEnabled(e.target.checked)}
               label="Sound Effects"
             />
           </div>
