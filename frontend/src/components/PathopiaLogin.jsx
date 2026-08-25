@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react';
 import bgImage from '../assets/landing/hero-background.png';
 import { login, register } from '../lib/auth';
 
 const PathopiaLogin = () => {
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [isSignIn, setIsSignIn] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
@@ -16,7 +17,9 @@ const PathopiaLogin = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
-    const [error, setError] = useState('');
+    const [error, setError] = useState(() =>
+        location.state?.sessionExpired ? 'Your session has expired. Please log in again.' : '',
+    );
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const switchMode = (signIn) => {
