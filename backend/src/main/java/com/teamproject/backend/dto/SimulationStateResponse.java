@@ -12,6 +12,10 @@ public class SimulationStateResponse {
     // Current scenario details
     private String scenarioId;
     private String scenarioTitle;
+    // e.g. "Onboarding" or "Phase 3" — frontend derives the "Moment N / 8"
+    // badge from the trailing number here so it stays correct across a
+    // refresh instead of relying on a client-side counter.
+    private String phase;
     private String scenarioSetting;
     private String backgroundImageUrl;
     private String situation;
@@ -23,6 +27,12 @@ public class SimulationStateResponse {
 
     // Only populated when the run is completed
     private String aiReflection;
+
+    // Only populated right after a choice submission — holds the reality_text
+    // of the choice the player JUST picked, so the frontend can show the
+    // Reality popup before moving on to the next moment. Null when this
+    // response is from starting/resuming a run (nothing was just chosen).
+    private String lastRealityText;
 
     public static class ChoiceOption {
         private String choiceId;
@@ -63,6 +73,9 @@ public class SimulationStateResponse {
     public String getScenarioTitle() { return scenarioTitle; }
     public void setScenarioTitle(String scenarioTitle) { this.scenarioTitle = scenarioTitle; }
 
+    public String getPhase() { return phase; }
+    public void setPhase(String phase) { this.phase = phase; }
+
     public String getScenarioSetting() { return scenarioSetting; }
     public void setScenarioSetting(String scenarioSetting) { this.scenarioSetting = scenarioSetting; }
 
@@ -83,4 +96,7 @@ public class SimulationStateResponse {
 
     public String getAiReflection() { return aiReflection; }
     public void setAiReflection(String aiReflection) { this.aiReflection = aiReflection; }
+
+    public String getLastRealityText() { return lastRealityText; }
+    public void setLastRealityText(String lastRealityText) { this.lastRealityText = lastRealityText; }
 }
