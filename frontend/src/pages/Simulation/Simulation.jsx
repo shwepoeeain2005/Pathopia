@@ -64,6 +64,29 @@ function parseDialogueChunks(raw) {
   }
 }
 
+// The reality_text content is authored as one continuous block with no
+// paragraph breaks, which reads as a dense wall of text in the modal.
+// Since we can't touch the underlying content, split it into a few
+// visual paragraphs here purely for display, grouping sentences (split
+// on the Burmese sentence-final "။") into at most 3 roughly-even chunks.
+function splitIntoParagraphs(text) {
+  if (!text) return []
+  const sentences = text
+    .split('။')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => `${s}။`)
+  if (sentences.length <= 2) return [sentences.join(' ')]
+
+  const targetParagraphs = Math.min(3, Math.ceil(sentences.length / 2))
+  const perParagraph = Math.ceil(sentences.length / targetParagraphs)
+  const paragraphs = []
+  for (let i = 0; i < sentences.length; i += perParagraph) {
+    paragraphs.push(sentences.slice(i, i + perParagraph).join(' '))
+  }
+  return paragraphs
+}
+
 function RealityModal({ text, onNext }) {
   const [visible, setVisible] = useState(false)
 
@@ -79,7 +102,7 @@ function RealityModal({ text, onNext }) {
       }`}
     >
       <div
-        className={`relative w-full max-w-lg p-10 rounded-[2.8rem] border border-[#6b4d94]/30 text-[#f2e9dc] transition-all duration-500 ease-out ${
+        className={`relative flex flex-col w-full max-w-2xl max-h-[85vh] rounded-[2.8rem] border border-[#6b4d94]/30 text-[#f2e9dc] overflow-hidden transition-all duration-500 ease-out ${
           visible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-3'
         }`}
         style={{
@@ -87,26 +110,37 @@ function RealityModal({ text, onNext }) {
           boxShadow: '0 20px 45px rgba(20, 16, 43, 0.55), 0 0 40px rgba(217, 169, 79, 0.25)',
         }}
       >
-        <div className="flex flex-col items-center text-center">
-          <div className="w-14 h-14 rounded-full bg-[#6b4d94]/20 flex items-center justify-center mb-5 border border-[#6b4d94]/30">
-            <Lightbulb className="w-6 h-6 text-[#d9a94f]" />
+        {/* Only this part scrolls when the reflection text is long, so the
+            Next button below stays put and reachable instead of scrolling
+            out of view with it. */}
+        <div className="overflow-y-auto p-10 pb-4">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-14 h-14 rounded-full bg-[#6b4d94]/20 flex items-center justify-center mb-5 border border-[#6b4d94]/30">
+              <Lightbulb className="w-6 h-6 text-[#d9a94f]" />
+            </div>
+            <h2 className="font-serif text-3xl font-medium tracking-wide mb-6 text-[#d9a94f]">
+              Behind the Career
+            </h2>
+            <div className="w-full flex flex-col gap-4 text-left text-base leading-relaxed text-[#f2e9dc]/85">
+              {splitIntoParagraphs(text).map((paragraph, i) => (
+                <p key={i} className="whitespace-pre-line">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
           </div>
-          <h2 className="font-serif text-3xl font-medium tracking-wide mb-4 text-[#d9a94f]">
-            Behind the Career
-          </h2>
-          <p className="text-base leading-relaxed text-[#f2e9dc]/85 whitespace-pre-line">
-            {text}
-          </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onNext}
-          className="mt-8 w-full py-4 rounded-full text-sm font-medium tracking-wide shadow-lg transition-all duration-300 ease-in-out hover:scale-[1.02] hover:shadow-[0_0_25px_rgba(217,169,79,0.6)]"
-          style={{ backgroundColor: '#d9a94f', color: '#14102b' }}
-        >
-          Next
-        </button>
+        <div className="px-10 pb-10 pt-2">
+          <button
+            type="button"
+            onClick={onNext}
+            className="w-full py-4 rounded-full text-sm font-medium tracking-wide shadow-lg transition-transform duration-150 ease-out active:scale-95"
+            style={{ backgroundColor: '#d9a94f', color: '#14102b' }}
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -123,6 +157,10 @@ function Simulation() {
   const [displayedText, setDisplayedText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [allChunksShown, setAllChunksShown] = useState(false)
+  // Separate from allChunksShown so the choice box's reveal can be held
+  // back until any lingering character portrait has finished fading out,
+  // instead of popping in at the same instant the fade-out starts.
+  const [choicesReady, setChoicesReady] = useState(false)
 
   const [selectedOptionKey, setSelectedOptionKey] = useState(null)
   const [clickSequence, setClickSequence] = useState([])
@@ -211,7 +249,10 @@ function Simulation() {
   // animate; setting src and opacity=100 in the same commit skips the
   // animation entirely.
   useEffect(() => {
-    const nextImage = currentChunk?.characterImage
+    // Once dialogue is done and the choice box is about to take over, treat
+    // it the same as "no character on this line" so whoever was speaking
+    // fades out instead of lingering on screen through the choice box.
+    const nextImage = allChunksShown ? null : currentChunk?.characterImage
 
     if (!nextImage) {
       const timeoutId = setTimeout(() => setCharacterVisible(false), 0)
@@ -238,7 +279,7 @@ function Simulation() {
       clearTimeout(timeoutId)
       if (rafId) cancelAnimationFrame(rafId)
     }
-  }, [currentChunk])
+  }, [currentChunk, allChunksShown])
 
   // Keep localStorage in sync with the active run so Dashboard's "Continue
   // Simulation" button knows what to resume, and doesn't offer to resume a
@@ -289,46 +330,6 @@ function Simulation() {
     return () => clearTimeout(timer)
   }, [showDialogueBox])
 
-  // Scenarios with no dialogue at all skip straight to choices/ending.
-  useEffect(() => {
-    if (!simState || chunks.length !== 0) return undefined
-    const id = setTimeout(() => {
-      setAllChunksShown(true)
-      setScenarioLoadedAt(Date.now())
-    }, 0)
-    return () => clearTimeout(id)
-  }, [simState, chunks.length])
-
-  useEffect(() => {
-    if (!currentChunk || showIntroLoader || !dialogueBoxRevealed) return undefined
-
-    const fullText = currentChunk.text || ''
-    const totalTicks = Math.max(1, Math.floor(MAX_TYPE_DURATION_MS / TYPE_INTERVAL_MS))
-    const charsPerTick = Math.max(1, Math.ceil(fullText.length / totalTicks))
-
-    let shown = 0
-
-    const tick = () => {
-      shown = Math.min(fullText.length, shown + charsPerTick)
-      setDisplayedText(fullText.slice(0, shown))
-      if (shown >= fullText.length) {
-        setIsTyping(false)
-        return
-      }
-      typingTimeoutRef.current = setTimeout(tick, TYPE_INTERVAL_MS)
-    }
-
-    typingTimeoutRef.current = setTimeout(() => {
-      setDisplayedText('')
-      setIsTyping(true)
-      typingTimeoutRef.current = setTimeout(tick, TYPE_INTERVAL_MS)
-    }, 0)
-
-    return () => clearTimeout(typingTimeoutRef.current)
-    // currentChunk is derived from [chunkIndex, simState]; including it would be redundant.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chunkIndex, simState, showIntroLoader, dialogueBoxRevealed])
-
   function completeTyping() {
     if (!currentChunk) return
     clearTimeout(typingTimeoutRef.current)
@@ -336,34 +337,16 @@ function Simulation() {
     setIsTyping(false)
   }
 
-  useEffect(() => {
-    function handleKeyDown(event) {
-      if (event.key !== 'Enter') return
-      if (allChunksShown || leaveModalOpen || audioModalOpen || realityText) return
-      if (isTyping) {
-        event.preventDefault()
-        completeTyping()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTyping, currentChunk, allChunksShown, leaveModalOpen, audioModalOpen, realityText])
-
-  function handleDialogueClick() {
-    if (isTyping || !currentChunk) return
-    if (chunkIndex < chunks.length - 1) {
-      setChunkIndex((i) => i + 1)
-    } else if (!allChunksShown) {
-      setAllChunksShown(true)
-      setScenarioLoadedAt(Date.now())
-    }
-  }
-
   function applyScenario(data) {
     setSimState(data)
     setChunkIndex(0)
-    setAllChunksShown(false)
+    // A completed run's final response re-sends the same ending scenario
+    // (just with status flipped) since there's no next scenario to move
+    // to — the player already watched this dialogue and made their choice,
+    // so skip straight past it to the reflection loading screen instead of
+    // replaying it.
+    setAllChunksShown(data.status === 'completed')
+    setChoicesReady(false)
     setSelectedOptionKey(null)
     setClickSequence([])
     setScenarioLoadedAt(null)
@@ -448,6 +431,82 @@ function Simulation() {
     }
   }
 
+  // Holds the choice box back until any character portrait still on screen
+  // has had time to fade out (see the character-visibility effect above,
+  // which starts that fade the moment allChunksShown flips true) — instead
+  // of the choices popping in at full opacity while she's mid-fade.
+  function revealChoicesOnceCharacterFades() {
+    const delay = currentChunk?.characterImage ? CHOICE_FADE_OUT_MS : 0
+    setTimeout(() => setChoicesReady(true), delay)
+  }
+
+  // Scenarios with no dialogue at all skip straight to choices/ending.
+  useEffect(() => {
+    if (!simState || chunks.length !== 0) return undefined
+    const id = setTimeout(() => {
+      setAllChunksShown(true)
+      setScenarioLoadedAt(Date.now())
+      revealChoicesOnceCharacterFades()
+    }, 0)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [simState, chunks.length])
+
+  useEffect(() => {
+    if (!currentChunk || showIntroLoader || !dialogueBoxRevealed) return undefined
+
+    const fullText = currentChunk.text || ''
+    const totalTicks = Math.max(1, Math.floor(MAX_TYPE_DURATION_MS / TYPE_INTERVAL_MS))
+    const charsPerTick = Math.max(1, Math.ceil(fullText.length / totalTicks))
+
+    let shown = 0
+
+    const tick = () => {
+      shown = Math.min(fullText.length, shown + charsPerTick)
+      setDisplayedText(fullText.slice(0, shown))
+      if (shown >= fullText.length) {
+        setIsTyping(false)
+        return
+      }
+      typingTimeoutRef.current = setTimeout(tick, TYPE_INTERVAL_MS)
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      setDisplayedText('')
+      setIsTyping(true)
+      typingTimeoutRef.current = setTimeout(tick, TYPE_INTERVAL_MS)
+    }, 0)
+
+    return () => clearTimeout(typingTimeoutRef.current)
+    // currentChunk is derived from [chunkIndex, simState]; including it would be redundant.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chunkIndex, simState, showIntroLoader, dialogueBoxRevealed])
+
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key !== 'Enter') return
+      if (allChunksShown || leaveModalOpen || audioModalOpen || realityText) return
+      if (isTyping) {
+        event.preventDefault()
+        completeTyping()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTyping, currentChunk, allChunksShown, leaveModalOpen, audioModalOpen, realityText])
+
+  function handleDialogueClick() {
+    if (isTyping || !currentChunk) return
+    if (chunkIndex < chunks.length - 1) {
+      setChunkIndex((i) => i + 1)
+    } else if (!allChunksShown) {
+      setAllChunksShown(true)
+      setScenarioLoadedAt(Date.now())
+      revealChoicesOnceCharacterFades()
+    }
+  }
+
   if (loadError) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center gap-4 bg-[#14102b] text-[#f2e9dc] font-sans px-4 text-center">
@@ -514,9 +573,20 @@ function Simulation() {
         <img
           src={displayedCharacter.src}
           alt={displayedCharacter.alt}
-          className={`absolute bottom-[16%] h-[78%] max-h-[760px] object-contain drop-shadow-2xl select-none pointer-events-none transition-opacity ease-out ${
+          className={`absolute bottom-[16%] h-[70%] max-h-[680px] object-contain drop-shadow-2xl select-none pointer-events-none transition-opacity ease-out ${
             characterVisible && !isSubmitting ? 'opacity-100' : 'opacity-0'
-          } ${displayedCharacter.side === 'left' ? 'left-[4%]' : 'right-[4%]'}`}
+          } ${
+            // Mirrors the dialogue box's own horizontal inset (w-[92%]
+            // max-w-4xl, centered) so the character's outer edge never
+            // sits past where the box actually reaches: 4% on narrow
+            // screens where the box is width-constrained by the 92%, but
+            // pinned to the box's real edge once max-w-4xl (56rem) caps
+            // it on wide screens, instead of drifting out toward the
+            // viewport edge and exposing whatever the box doesn't cover.
+            displayedCharacter.side === 'left'
+              ? 'left-[max(4%,calc(50%_-_28rem))]'
+              : 'right-[max(4%,calc(50%_-_28rem))]'
+          }`}
           style={{ transitionDuration: `${CHOICE_FADE_OUT_MS}ms` }}
         />
       )}
@@ -559,7 +629,7 @@ function Simulation() {
         </div>
       )}
 
-      {allChunksShown && !simState.ending && (
+      {allChunksShown && choicesReady && simState.status !== 'completed' && (
         <div
           className={`absolute bottom-0 left-0 right-0 z-20 mx-auto flex w-[92%] max-w-2xl flex-col gap-3 transition-opacity ease-out ${
             (simState.choices || []).length === 1 ? 'mb-16' : 'mb-8'
@@ -596,7 +666,7 @@ function Simulation() {
         </div>
       )}
 
-      {allChunksShown && simState.ending && (
+      {allChunksShown && simState.status === 'completed' && (
         <LoadingScreen text="Your reflection is being prepared..." />
       )}
 

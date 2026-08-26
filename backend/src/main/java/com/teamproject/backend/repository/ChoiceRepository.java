@@ -9,5 +9,5 @@ import java.util.UUID;
 public interface ChoiceRepository extends JpaRepository<Choice, UUID> {
 
     // Get all choices (A/B/C/D) for one scenario, so the Simulation page can display them
-    List<Choice> findByScenarioId(String scenarioId);
+    List<Choice> findByScenarioIdOrderByOptionKeyAsc(String scenarioId);
 }
