@@ -1,5 +1,6 @@
 package com.teamproject.backend.service;
 
+import com.teamproject.backend.dto.ReflectionSections;
 import com.teamproject.backend.dto.SimulationStateResponse;
 import com.teamproject.backend.dto.SubmitChoiceRequest;
 import com.teamproject.backend.model.*;
@@ -28,6 +29,9 @@ public class SimulationService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private GeminiReflectionService geminiReflectionService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -59,7 +63,7 @@ public class SimulationService {
     private Scenario findStartingScenario(List<Scenario> scenarios) {
         Set<String> targetedScenarioIds = new HashSet<>();
         for (Scenario s : scenarios) {
-            List<Choice> choices = choiceRepository.findByScenarioId(s.getId());
+            List<Choice> choices = choiceRepository.findByScenarioIdOrderByOptionKeyAsc(s.getId());
             for (Choice c : choices) {
                 if (c.getNextScenario() != null) {
                     targetedScenarioIds.add(c.getNextScenario().getId());
@@ -92,9 +96,9 @@ public class SimulationService {
 
     /**
      * Submits a choice for the current scenario in a run.
-     * Returns both the updated run AND the reality_text of the choice that
-     * was just picked, so the controller can pass it into the response for
-     * the frontend's Reality popup.
+     * If this choice completes the run (no next scenario), this also
+     * triggers AI reflection generation synchronously before returning,
+     * so the response already includes the finished reflection.
      */
     public SimulationChoiceResult submitChoice(UUID runId, SubmitChoiceRequest request) {
         SimulationRun run = simulationRunRepository.findById(runId)
@@ -158,12 +162,46 @@ public class SimulationService {
         if (next == null) {
             run.setStatus("completed");
             run.setCompletedAt(LocalDateTime.now());
+
+            // Generate the AI reflection now that the run is complete.
+            // If this fails (API hiccup, parsing issue), don't block the
+            // user from seeing they've finished — just log and leave
+            // aiReflection null; the frontend can show a fallback message
+            // and this can be retried later via the dedicated endpoint.
+            try {
+                ReflectionSections sections = geminiReflectionService.generateReflection(run);
+                run.setAiReflection(objectMapper.writeValueAsString(sections));
+            } catch (Exception e) {
+                System.err.println("Reflection generation failed for run " + runId + ": " + e.getMessage());
+            }
         } else {
             run.setCurrentScenario(next);
         }
 
         SimulationRun savedRun = simulationRunRepository.save(run);
         return new SimulationChoiceResult(savedRun, choice.getRealityText());
+    }
+
+    /**
+     * Retries reflection generation for a completed run that doesn't have
+     * one yet (e.g. the automatic generation failed during submitChoice).
+     */
+    public SimulationRun regenerateReflection(UUID runId) {
+        SimulationRun run = simulationRunRepository.findById(runId)
+                .orElseThrow(() -> new RuntimeException("Simulation run not found"));
+
+        if (!"completed".equals(run.getStatus())) {
+            throw new RuntimeException("This run is not completed yet");
+        }
+
+        ReflectionSections sections = geminiReflectionService.generateReflection(run);
+        try {
+            run.setAiReflection(objectMapper.writeValueAsString(sections));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to save generated reflection", e);
+        }
+
+        return simulationRunRepository.save(run);
     }
 
     public SimulationStateResponse buildStateResponse(SimulationRun run) {
@@ -187,7 +225,7 @@ public class SimulationService {
         response.setDialogueChunks(scenario.getDialogueChunks());
         response.setEnding(scenario.isEnding());
 
-        List<Choice> choices = choiceRepository.findByScenarioId(scenario.getId());
+        List<Choice> choices = choiceRepository.findByScenarioIdOrderByOptionKeyAsc(scenario.getId());
         List<SimulationStateResponse.ChoiceOption> options = new ArrayList<>();
         for (Choice c : choices) {
             options.add(new SimulationStateResponse.ChoiceOption(
@@ -204,11 +242,6 @@ public class SimulationService {
         return response;
     }
 
-    /**
-     * Simple holder pairing the updated run with the reality_text of the
-     * choice that was just submitted, so the controller has both pieces
-     * needed to build the full response.
-     */
     public static class SimulationChoiceResult {
         private final SimulationRun run;
         private final String realityText;
