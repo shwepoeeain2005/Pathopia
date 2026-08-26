@@ -82,6 +82,8 @@ public class SimulationController {
      * Submits a choice. The response now includes lastRealityText — the
      * reality_text of the choice the player just picked — so the frontend
      * can show the Reality popup before advancing to the next moment.
+     * If this choice completes the run, the reflection is generated and
+     * included in the response's aiReflection field automatically.
      */
     @PostMapping("/{runId}/choice")
     public ResponseEntity<?> submitChoice(
@@ -94,6 +96,22 @@ public class SimulationController {
             SimulationStateResponse response = simulationService.buildStateResponse(
                     result.getRun(), result.getRealityText());
             return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    /**
+     * Fallback endpoint: retries reflection generation for a completed run
+     * that doesn't have one yet (e.g. automatic generation failed due to
+     * a transient API issue). The frontend should call this if it receives
+     * a completed run with a null aiReflection.
+     */
+    @PostMapping("/{runId}/regenerate-reflection")
+    public ResponseEntity<?> regenerateReflection(@PathVariable String runId) {
+        try {
+            SimulationRun run = simulationService.regenerateReflection(UUID.fromString(runId));
+            return ResponseEntity.ok(simulationService.buildStateResponse(run));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
