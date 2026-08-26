@@ -171,6 +171,14 @@ function Simulation() {
   const [realityText, setRealityText] = useState(null)
   const [isBlackout, setIsBlackout] = useState(false)
 
+  // Populated once the run completes and the separate reflection-generation
+  // call (kicked off from applyScenario, not bundled into choice submission
+  // since Gemini can take 40+ seconds) resolves. Not read anywhere yet —
+  // the Reflection page that will consume it is being built next.
+  // eslint-disable-next-line no-unused-vars
+  const [reflectionData, setReflectionData] = useState(null)
+  const [reflectionError, setReflectionError] = useState(null)
+
   const [showIntroLoader, setShowIntroLoader] = useState(true)
   const [introLoaderHiding, setIntroLoaderHiding] = useState(false)
   const [showDialogueBox, setShowDialogueBox] = useState(false)
@@ -337,6 +345,34 @@ function Simulation() {
     setIsTyping(false)
   }
 
+  // Kicks off AI reflection generation as its own request, separate from
+  // choice submission — Gemini can take 40+ seconds, so this runs while the
+  // LoadingScreen below is actually showing, instead of that screen just
+  // being decorative padding after the fact.
+  async function fetchReflection(runId) {
+    setReflectionError(null)
+    try {
+      const res = await fetch(`${SIMULATION_API_BASE}/${runId}/regenerate-reflection`, {
+        method: 'POST',
+        headers: authHeaders(),
+      })
+      if (res.status === 401 || res.status === 403) {
+        logout()
+        navigate('/login', { state: { sessionExpired: true } })
+        return
+      }
+      if (!res.ok) throw new Error(`reflection generation failed with status ${res.status}`)
+      const data = await res.json()
+      // TODO: navigate to the Reflection page once it exists, passing this
+      // along as router state, instead of just stashing it here.
+      console.log('AI reflection ready:', data)
+      setReflectionData(data)
+    } catch (err) {
+      console.error(err)
+      setReflectionError(err.message || 'Something went wrong while preparing your reflection.')
+    }
+  }
+
   function applyScenario(data) {
     setSimState(data)
     setChunkIndex(0)
@@ -353,6 +389,11 @@ function Simulation() {
     setRealityText(null)
     setPendingNextState(null)
     setIsSubmitting(false)
+    setReflectionData(null)
+    setReflectionError(null)
+    if (data.status === 'completed') {
+      fetchReflection(data.runId)
+    }
   }
 
   // Swaps to the next moment behind a full-screen black fade: fade to
@@ -667,7 +708,27 @@ function Simulation() {
       )}
 
       {allChunksShown && simState.status === 'completed' && (
-        <LoadingScreen text="Your reflection is being prepared..." />
+        reflectionError ? (
+          <div
+            className="fixed inset-0 z-[90] flex flex-col items-center justify-center gap-5 backdrop-blur-sm px-6 text-center"
+            style={{ backgroundColor: 'rgba(15, 9, 31, 0.85)' }}
+          >
+            <p className="font-serif text-lg text-[#f2e9dc]/90 max-w-sm">
+              Something went wrong while preparing your reflection.
+            </p>
+            <p className="text-sm text-[#f2e9dc]/60 max-w-sm">{reflectionError}</p>
+            <button
+              type="button"
+              onClick={() => fetchReflection(simState.runId)}
+              className="px-8 py-3 rounded-full text-sm font-medium tracking-wide transition-transform duration-150 ease-out active:scale-95"
+              style={{ backgroundColor: '#d9a94f', color: '#14102b' }}
+            >
+              Try Again
+            </button>
+          </div>
+        ) : (
+          <LoadingScreen text="Your reflection is being prepared..." />
+        )
       )}
 
       {realityText && <RealityModal text={realityText} onNext={handleRealityNext} />}
