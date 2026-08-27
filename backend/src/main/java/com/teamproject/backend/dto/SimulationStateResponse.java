@@ -28,6 +28,12 @@ public class SimulationStateResponse {
     // Only populated when the run is completed
     private String aiReflection;
 
+    // Raw JSON string of the run's running trait totals (same shape as
+    // Choice.traitScores, e.g. {"communication": 45, "technical-analysis": 30}).
+    // The frontend parses it and feeds it to the Reflection page's radar
+    // chart — never shown to the user as a number or grade.
+    private String accumulatedScores;
+
     // Only populated right after a choice submission — holds the reality_text
     // of the choice the player JUST picked, so the frontend can show the
     // Reality popup before moving on to the next moment. Null when this
@@ -96,6 +102,9 @@ public class SimulationStateResponse {
 
     public String getAiReflection() { return aiReflection; }
     public void setAiReflection(String aiReflection) { this.aiReflection = aiReflection; }
+
+    public String getAccumulatedScores() { return accumulatedScores; }
+    public void setAccumulatedScores(String accumulatedScores) { this.accumulatedScores = accumulatedScores; }
 
     public String getLastRealityText() { return lastRealityText; }
     public void setLastRealityText(String lastRealityText) { this.lastRealityText = lastRealityText; }
