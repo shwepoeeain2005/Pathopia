@@ -232,6 +232,8 @@ public class SimulationService {
         }
         response.setChoices(options);
 
+        response.setAccumulatedScores(run.getAccumulatedScores());
+
         if ("completed".equals(run.getStatus())) {
             response.setAiReflection(run.getAiReflection());
         }
