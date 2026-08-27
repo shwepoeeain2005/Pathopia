@@ -171,12 +171,10 @@ function Simulation() {
   const [realityText, setRealityText] = useState(null)
   const [isBlackout, setIsBlackout] = useState(false)
 
-  // Populated once the run completes and the separate reflection-generation
-  // call (kicked off from applyScenario, not bundled into choice submission
-  // since Gemini can take 40+ seconds) resolves. Not read anywhere yet —
-  // the Reflection page that will consume it is being built next.
-  // eslint-disable-next-line no-unused-vars
-  const [reflectionData, setReflectionData] = useState(null)
+  // Set only if the separate reflection-generation call (kicked off from
+  // applyScenario, not bundled into choice submission since Gemini can take
+  // 40+ seconds) fails — on success we navigate straight to /reflection, so
+  // there's nothing to hold onto here.
   const [reflectionError, setReflectionError] = useState(null)
 
   const [showIntroLoader, setShowIntroLoader] = useState(true)
@@ -363,10 +361,17 @@ function Simulation() {
       }
       if (!res.ok) throw new Error(`reflection generation failed with status ${res.status}`)
       const data = await res.json()
-      // TODO: navigate to the Reflection page once it exists, passing this
-      // along as router state, instead of just stashing it here.
-      console.log('AI reflection ready:', data)
-      setReflectionData(data)
+      // Hand the finished reflection + trait totals to the Reflection page
+      // via router state so it never has to re-fetch. runId lets that page
+      // (eventually) deep-link into History.
+      navigate('/reflection', {
+        state: {
+          careerTitle: data.careerTitle,
+          aiReflection: data.aiReflection,
+          accumulatedScores: data.accumulatedScores,
+          runId: data.runId,
+        },
+      })
     } catch (err) {
       console.error(err)
       setReflectionError(err.message || 'Something went wrong while preparing your reflection.')
@@ -389,7 +394,6 @@ function Simulation() {
     setRealityText(null)
     setPendingNextState(null)
     setIsSubmitting(false)
-    setReflectionData(null)
     setReflectionError(null)
     if (data.status === 'completed') {
       fetchReflection(data.runId)
