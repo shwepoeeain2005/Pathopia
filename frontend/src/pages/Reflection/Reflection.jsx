@@ -59,11 +59,11 @@ function ReflectionSection({ title, body }) {
   if (!body) return null
   return (
     <section
-      className="rounded-3xl border border-[#6b4d94]/30 p-6 sm:p-8"
+      className="rounded-3xl p-6 sm:p-8"
       style={{
-        background:
-          'linear-gradient(150deg, rgba(45, 33, 84, 0.55), rgba(107, 77, 148, 0.22))',
-        boxShadow: '0 16px 40px rgba(20, 16, 43, 0.45)',
+        background: 'linear-gradient(160deg, #2d2154, #6b4d94)',
+        boxShadow:
+          '0 20px 45px rgba(20, 16, 43, 0.55), 0 0 40px rgba(107, 77, 148, 0.3)',
       }}
     >
       <h2 className="font-serif text-xl sm:text-2xl font-medium tracking-wide text-[#d9a94f] mb-3">
@@ -135,11 +135,11 @@ function Reflection() {
 
         {radarData.length >= 3 && (
           <section
-            className="rounded-3xl border border-[#6b4d94]/30 p-6 sm:p-8"
+            className="rounded-3xl p-6 sm:p-8"
             style={{
-              background:
-                'linear-gradient(150deg, rgba(45, 33, 84, 0.55), rgba(107, 77, 148, 0.22))',
-              boxShadow: '0 16px 40px rgba(20, 16, 43, 0.45)',
+              background: 'linear-gradient(160deg, #2d2154, #6b4d94)',
+              boxShadow:
+                '0 20px 45px rgba(20, 16, 43, 0.55), 0 0 40px rgba(107, 77, 148, 0.3)',
             }}
           >
             <p className="mb-4 text-center text-xs font-semibold uppercase tracking-[0.22em] text-[#d9a94f]/80">
