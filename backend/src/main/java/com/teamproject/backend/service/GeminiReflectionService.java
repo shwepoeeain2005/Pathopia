@@ -16,8 +16,6 @@ import java.util.*;
 @Service
 public class GeminiReflectionService {
 
-    // Read from backend/.env via the existing DotenvEnvironmentPostProcessor,
-    // same mechanism as DB_URL / JWT_SECRET.
     @Value("${GEMINI_API_KEY}")
     private String apiKey;
 
@@ -27,11 +25,6 @@ public class GeminiReflectionService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RestTemplate restTemplate = new RestTemplate();
 
-    /**
-     * Generates the 5-section reflection for a completed simulation run.
-     * Gathers accumulated trait scores + behavioral data from choices_history,
-     * builds the prompt, calls Gemini, and parses the JSON response.
-     */
     public ReflectionSections generateReflection(SimulationRun run) {
         Career career = run.getCareer();
 
@@ -42,7 +35,8 @@ public class GeminiReflectionService {
 
     private String buildPrompt(SimulationRun run, Career career) {
         String accumulatedScoresJson = run.getAccumulatedScores();
-        String behaviorDataJson = summarizeBehaviorData(run.getChoicesHistory());
+        String behaviorSummaryJson = summarizeBehaviorData(run.getChoicesHistory());
+        String fullChoiceHistoryJson = run.getChoicesHistory();
         int pauseCount = run.getPauseCount() != null ? run.getPauseCount() : 0;
 
         return """
@@ -60,9 +54,18 @@ public class GeminiReflectionService {
             your output):
             %s
 
-            Behavioral data across the playthrough (average time spent per \
-            decision in seconds, and how many times the user changed their mind \
-            before confirming a choice, per moment):
+            Behavioral summary across the playthrough (average time spent per \
+            decision, total mind-changes, longest single pause, etc.):
+            %s
+
+            Full choice-by-choice history for this playthrough (each entry shows \
+            which scenario, which trait scores that choice contributed, how long \
+            it took, and how many times the player changed their mind before \
+            confirming). Use this as your PRIMARY source for identifying specific, \
+            grounded strengths and weaknesses — reason carefully across the full \
+            sequence to notice real patterns (e.g. consistently slow on choices \
+            that scored high in one trait but fast on others, or a trait that was \
+            almost always chosen alongside another specific trait):
             %s
 
             Number of times the user paused and resumed this simulation session: %d
@@ -75,8 +78,9 @@ public class GeminiReflectionService {
             values anywhere in the Burmese text. Describe tendencies in plain \
             descriptive language only.
             3. NEVER reference specific scenario names, specific choice letters \
-            (A/B/C/D), or specific moments by name. Speak only in overall \
-            patterns and tendencies.
+            (A/B/C/D), or specific moments by name, even though you're reasoning \
+            from the detailed choice history above — translate what you notice \
+            into pattern-level language only, never a recap of moments.
             4. Write in second person, calm and warm tone, never clinical or \
             robotic-sounding.
             5. Each section should be genuinely substantial — 3-5 sentences \
@@ -84,15 +88,23 @@ public class GeminiReflectionService {
             6. Notice contradictions or selective patterns where they exist.
             7. The final section ("careerCompatibility") MUST include an \
             explicit statement that this simulation cannot determine the \
-            user's future, before offering any suggestion.
+            user's future, before offering any suggestion. Keep this section \
+            SHORT — 3-4 sentences, a closing note, not an extended analysis.
             8. Do not use bullet points or lists — write in flowing prose.
-            9. Keep only the word "simulation" in English rather than\s
-            transliterating it into Burmese phonetics (e.g. "...ဒီ Simulation\s
-            တစ်ခုလုံးမှာ..."). All other technical or trait-related terms\s
-            (Root Cause, Trade-off, Data Integrity, etc.) may be written in\s
-            whichever language — English or Burmese — reads most naturally in\s
-            context, exactly as your own scenario scripts already do. Do not force\s
-            English on these terms.
+            9. Keep only the word "simulation" in English rather than \
+            transliterating it into Burmese phonetics (e.g. "...ဒီ Simulation \
+            တစ်ခုလုံးမှာ..."). All other technical or trait-related terms may be \
+            written in whichever language reads most naturally in context — do \
+            not force English on these.
+            10. For "challengesAhead" specifically: this section should be the \
+            most detailed and substantial of all five. For each challenge or \
+            weakness you identify, pair it with concrete, actionable advice on \
+            what specifically the person could work on or practice to address \
+            it — not just naming a risk, but giving real direction. Reason from \
+            the full choice history to ground each point in something real \
+            about how they actually played, not generic career advice that \
+            could apply to anyone. Aim for at least 5-6 sentences here, covering \
+            2-3 distinct strength/weakness pairs with advice attached to each.
 
             RETURN EXACTLY THIS JSON SCHEMA (keys in English, values in Burmese):
             {
@@ -106,16 +118,12 @@ public class GeminiReflectionService {
                 career.getTitle(),
                 career.getDescription(),
                 accumulatedScoresJson,
-                behaviorDataJson,
+                behaviorSummaryJson,
+                fullChoiceHistoryJson,
                 pauseCount
         );
     }
 
-    /**
-     * Reads choices_history and produces a small summary of timing/mind-change
-     * patterns rather than dumping the raw array — keeps the prompt compact
-     * and gives the model pre-digested signal instead of raw logs.
-     */
     private String summarizeBehaviorData(String choicesHistoryJson) {
         try {
             List<Map<String, Object>> history = objectMapper.readValue(choicesHistoryJson, List.class);
@@ -165,7 +173,6 @@ public class GeminiReflectionService {
 
         Map response = restTemplate.postForObject(urlWithKey, requestEntity, Map.class);
 
-        // Navigate Gemini's response shape: candidates[0].content.parts[0].text
         List<Map> candidates = (List<Map>) response.get("candidates");
         Map firstCandidate = candidates.get(0);
         Map contentObj = (Map) firstCandidate.get("content");
@@ -174,8 +181,6 @@ public class GeminiReflectionService {
     }
 
     private ReflectionSections parseResponse(String rawText) {
-        // Gemini sometimes wraps JSON in markdown code fences despite
-        // instructions not to — strip them defensively before parsing.
         String cleaned = rawText.trim();
         if (cleaned.startsWith("```")) {
             cleaned = cleaned.replaceAll("^```(json)?", "").replaceAll("```$", "").trim();
