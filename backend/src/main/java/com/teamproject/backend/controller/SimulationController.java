@@ -1,5 +1,6 @@
 package com.teamproject.backend.controller;
 
+import com.teamproject.backend.dto.HistoryEntry;
 import com.teamproject.backend.dto.SimulationStateResponse;
 import com.teamproject.backend.dto.StartSimulationRequest;
 import com.teamproject.backend.dto.SubmitChoiceRequest;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -112,6 +114,41 @@ public class SimulationController {
         try {
             SimulationRun run = simulationService.regenerateReflection(UUID.fromString(runId));
             return ResponseEntity.ok(simulationService.buildStateResponse(run));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    /**
+     * Returns the logged-in user's completed simulation history,
+     * newest first.
+     */
+    @GetMapping("/history")
+    public ResponseEntity<?> getHistory(Authentication authentication) {
+        try {
+            UUID userId = UUID.fromString(authentication.getName());
+            List<HistoryEntry> history = simulationService.getHistory(userId);
+            return ResponseEntity.ok(history);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    /**
+     * Returns the full state of one specific run (used to reopen an old
+     * completed run's reflection via the History page). Only the run's
+     * own owner can fetch it.
+     */
+    @GetMapping("/{runId}")
+    public ResponseEntity<?> getRun(
+            @PathVariable String runId,
+            Authentication authentication
+    ) {
+        try {
+            UUID userId = UUID.fromString(authentication.getName());
+            SimulationStateResponse response = simulationService.getRunById(
+                    UUID.fromString(runId), userId);
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
