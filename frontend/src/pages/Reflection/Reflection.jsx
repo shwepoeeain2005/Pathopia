@@ -16,9 +16,7 @@ const DISCLAIMER_TEXT =
   'သင့်ရွေးချယ်မှုများ၊ တုံ့ပြန်ပုံများအပေါ် အခြေခံ၍ ဆင်ခြင်စရာများသာ ' +
   'ပေးအပ်ခြင်း ဖြစ်ပါသည်။'
 
-// History page isn't built yet, so "View in History" lands on the dashboard
-// for now. Swap this to '/history' once that route exists.
-const HISTORY_ROUTE = '/dashboard'
+const HISTORY_ROUTE = '/history'
 
 // "technical-analysis" -> "Technical Analysis"
 function formatTraitLabel(key) {

@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard/Dashboard';
 import About from './pages/About/About';
 import Simulation from './pages/Simulation/Simulation';
 import Reflection from './pages/Reflection/Reflection';
+import History from './pages/History/History';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
                     <Route path="/career-selection" element={<CareerSelection />} />
                     <Route path="/simulation" element={<Simulation />} />
                     <Route path="/reflection" element={<Reflection />} />
+                    <Route path="/history" element={<History />} />
                 </Route>
             </Routes>
         </BrowserRouter>
