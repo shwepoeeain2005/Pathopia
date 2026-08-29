@@ -1,5 +1,6 @@
 package com.teamproject.backend.service;
 
+import com.teamproject.backend.dto.HistoryEntry;
 import com.teamproject.backend.dto.ReflectionSections;
 import com.teamproject.backend.dto.SimulationStateResponse;
 import com.teamproject.backend.dto.SubmitChoiceRequest;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Service
@@ -201,6 +203,46 @@ public class SimulationService {
         }
 
         return simulationRunRepository.save(run);
+    }
+
+    /**
+     * Returns all completed runs for a user, newest first, as lightweight
+     * history entries (not the full simulation state — just enough for
+     * the History page's list view).
+     */
+    public List<HistoryEntry> getHistory(UUID userId) {
+        List<SimulationRun> completedRuns = simulationRunRepository
+                .findByUserIdAndStatusOrderByCompletedAtDesc(userId, "completed");
+
+        List<HistoryEntry> entries = new ArrayList<>();
+        for (SimulationRun run : completedRuns) {
+            String completedAtStr = run.getCompletedAt() != null
+                    ? run.getCompletedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                    : null;
+            entries.add(new HistoryEntry(
+                    run.getId().toString(),
+                    run.getCareer().getId(),
+                    run.getCareer().getTitle(),
+                    completedAtStr
+            ));
+        }
+        return entries;
+    }
+
+    /**
+     * Returns the full state (including saved aiReflection) for one specific
+     * run, regardless of whether it's in_progress or completed — used by
+     * the History page to reopen an old result via the Reflection page.
+     */
+    public SimulationStateResponse getRunById(UUID runId, UUID requestingUserId) {
+        SimulationRun run = simulationRunRepository.findById(runId)
+                .orElseThrow(() -> new RuntimeException("Simulation run not found"));
+
+        if (!run.getUser().getId().equals(requestingUserId)) {
+            throw new RuntimeException("This simulation run does not belong to you");
+        }
+
+        return buildStateResponse(run);
     }
 
     public SimulationStateResponse buildStateResponse(SimulationRun run) {
