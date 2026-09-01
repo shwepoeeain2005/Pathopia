@@ -32,10 +32,10 @@ function Dashboard() {
   const navigate = useNavigate()
   const userName = localStorage.getItem('fullName') || 'there'
 
-  // No endpoint yet returns "does this user have ANY unfinished run" across
-  // careers (only per-career check-unfinished exists), so this relies on
-  // Simulation.jsx recording the active run's id in localStorage whenever
-  // one is in progress, and clearing it once completed.
+  // This relies on Simulation.jsx recording the active run's id in
+  // localStorage whenever one is in progress, and clearing it once
+  // completed. (The backend /check-unfinished endpoint could serve this
+  // instead, but Dashboard hasn't been switched over to it.)
   const [activeRun] = useState(() => {
     const runId = localStorage.getItem('activeSimulationRunId')
     const careerTitle = localStorage.getItem('activeSimulationCareerTitle')

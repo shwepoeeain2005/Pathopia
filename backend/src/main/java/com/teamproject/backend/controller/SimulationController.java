@@ -22,15 +22,12 @@ public class SimulationController {
     @Autowired
     private SimulationService simulationService;
 
-    @GetMapping("/check-unfinished/{careerId}")
-    public ResponseEntity<?> checkUnfinished(
-            @PathVariable String careerId,
-            Authentication authentication
-    ) {
+    @GetMapping("/check-unfinished")
+    public ResponseEntity<?> checkUnfinished(Authentication authentication) {
         try {
             UUID userId = UUID.fromString(authentication.getName());
 
-            Optional<SimulationRun> existing = simulationService.findUnfinishedRun(userId, careerId);
+            Optional<SimulationRun> existing = simulationService.findUnfinishedRun(userId);
 
             if (existing.isPresent()) {
                 SimulationRun run = existing.get();

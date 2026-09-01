@@ -157,8 +157,10 @@ function CareerSelection() {
     const token = localStorage.getItem('authToken')
 
     try {
+      // Global check: does the user have ANY unfinished run, for any career?
+      // The modal always names that run's career, not the one just clicked.
       const checkResponse = await fetch(
-        `${SIMULATION_API_BASE}/check-unfinished/${career.id}`,
+        `${SIMULATION_API_BASE}/check-unfinished`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -174,6 +176,7 @@ function CareerSelection() {
       if (unfinishedRun) {
         setConflict({
           runId: unfinishedRun.runId,
+          currentCareerId: unfinishedRun.careerId,
           currentCareerTitle: unfinishedRun.careerTitle,
           newCareerId: career.id,
           newCareerTitle: career.title,
@@ -346,6 +349,7 @@ function CareerSelection() {
         <ResumeConflictModal
           currentCareerName={conflict.currentCareerTitle}
           newCareerName={conflict.newCareerTitle}
+          isSameCareer={conflict.currentCareerId === conflict.newCareerId}
           onResume={handleResumeConflict}
           onStartNew={handleStartNewConflict}
           onCancel={() => setConflict(null)}
