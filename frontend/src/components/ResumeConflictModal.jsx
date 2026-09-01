@@ -1,13 +1,12 @@
 import { PlusCircle, Play, TriangleAlert } from 'lucide-react'
 
-function ResumeConflictModal({ currentCareerName, newCareerName, onResume, onStartNew, onCancel }) {
-  // Right now there's only one real career to pick, so this conflict is
-  // almost always "you clicked the same career you already have in
-  // progress" — the two-career wording ("begin a new path as a Data
-  // Analyst" when you're already mid-Data-Analyst) reads as a mistake, not
-  // a real choice. Keep the generic two-name copy for whenever a second
-  // career actually exists and this can be a genuine "switch career" case.
-  const isSameCareer = currentCareerName === newCareerName
+function ResumeConflictModal({ currentCareerName, newCareerName, isSameCareer, onResume, onStartNew, onCancel }) {
+  // isSameCareer is decided by the caller from the career id, not by
+  // comparing these display names — the unfinished run's title comes from
+  // the database while newCareerName comes from the frontend's CAREERS
+  // list, and the two aren't always byte-identical for the same career.
+  // Keep the generic two-name copy for whenever a second career actually
+  // exists and this can be a genuine "switch career" case.
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -36,10 +35,11 @@ function ResumeConflictModal({ currentCareerName, newCareerName, onResume, onSta
               </>
             ) : (
               <>
-                You currently have an active simulation in progress for{' '}
-                <strong className="font-semibold text-[#f2e9dc]">{currentCareerName}</strong>.
-                Would you prefer to resume your journey, or begin a new path as a{' '}
-                <strong className="font-semibold text-[#f2e9dc]">{newCareerName}</strong>?
+                You have an unfinished{' '}
+                <strong className="font-semibold text-[#f2e9dc]">{currentCareerName}</strong>{' '}
+                simulation. Resume where you left off, or start a{' '}
+                <strong className="font-semibold text-[#f2e9dc]">{newCareerName}</strong>{' '}
+                simulation instead?
               </>
             )}
           </p>
@@ -58,7 +58,7 @@ function ResumeConflictModal({ currentCareerName, newCareerName, onResume, onSta
             <button
               type="button"
               onClick={onStartNew}
-              className="w-full sm:w-1/2 py-4 px-6 rounded-full text-sm font-medium tracking-wide flex items-center justify-center gap-2 bg-[#14102b] border border-[#6b4d94]/50 text-[#f2e9dc] hover:bg-[#6b4d94]/20 transition-colors"
+              className="w-full sm:w-1/2 py-4 px-6 rounded-full text-sm font-medium tracking-wide flex items-center justify-center gap-2 bg-transparent border border-[#6b4d94]/50 text-[#f2e9dc] hover:bg-[#14102b] transition-colors"
             >
               <PlusCircle className="w-4 h-4" />
               {isSameCareer ? 'Start Over' : `Start ${newCareerName} instead`}

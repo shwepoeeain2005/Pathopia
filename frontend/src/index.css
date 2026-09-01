@@ -11,6 +11,25 @@
   100% { transform: scale(1); }
 }
 
+/* Phone-call treatment for dialogue chunks flagged `phone: true` — a
+   speaker who's on the line, not in the room. Expanding rings read as a
+   live call; the wobble is the handset ringing. */
+@keyframes callRing {
+    0% { transform: scale(1); opacity: 0.5; }
+   70% { opacity: 0; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+@keyframes callWobble {
+  0%, 100% { transform: rotate(0deg); }
+  15% { transform: rotate(-12deg); }
+  30% { transform: rotate(10deg); }
+  45% { transform: rotate(-7deg); }
+  60% { transform: rotate(4deg); }
+  75% { transform: rotate(-2deg); }
+}
+.animate-call-ring { animation: callRing 1.8s ease-out infinite; }
+.animate-call-wobble { animation: callWobble 1s ease-in-out infinite; }
+
 /* Steps through a 5x2 sprite sheet (10 frames, reading order) as a
    stop-motion loop rather than a smooth slide, by holding each frame's
    background-position for its slice of the timeline. Percentage positions

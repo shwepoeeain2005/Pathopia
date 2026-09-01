@@ -80,9 +80,9 @@ public class SimulationService {
         return scenarios.get(0);
     }
 
-    public Optional<SimulationRun> findUnfinishedRun(UUID userId, String careerId) {
-        return simulationRunRepository.findFirstByUserIdAndCareerIdAndStatusOrderByStartedAtDesc(
-                userId, careerId, "in_progress");
+    public Optional<SimulationRun> findUnfinishedRun(UUID userId) {
+        return simulationRunRepository.findFirstByUserIdAndStatusOrderByStartedAtDesc(
+                userId, "in_progress");
     }
 
     public void deleteRun(UUID runId) {

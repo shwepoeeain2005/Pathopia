@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Lightbulb, LogOut, Volume2 } from 'lucide-react'
+import { Lightbulb, LogOut, Phone, Volume2 } from 'lucide-react'
 import LeaveSimulationModal from '../../components/LeaveSimulationModal.jsx'
+import PhoneCallOverlay from '../../components/PhoneCallOverlay.jsx'
 import AudioModal from '../../components/AudioModal.jsx'
 import LoadingScreen from '../../components/LoadingScreen.jsx'
 import { logout } from '../../lib/auth.js'
@@ -10,7 +11,9 @@ import { useAudioSettings } from '../../hooks/useAudioSettings.js'
 const SIMULATION_API_BASE = '/api/simulation'
 const TOTAL_MOMENTS = 8
 const TYPE_INTERVAL_MS = 32
-const MAX_TYPE_DURATION_MS = 6000
+// One character per tick, always — a fixed reveal rate so every line types
+// at the same speed regardless of its length (see the typing effect below).
+const TYPE_CHARS_PER_TICK = 1
 const CHOICE_FADE_OUT_MS = 350
 const MOMENT_FADE_MS = 450
 const MOMENT_BLACK_HOLD_MS = 150
@@ -19,12 +22,12 @@ const INTRO_LOADER_FADE_MS = 500
 const DIALOGUE_BOX_DELAY_MS = 1000
 const DIALOGUE_BOX_ENTRANCE_MS = 500
 
-// There's no backend endpoint yet that reports "does this user have ANY
-// unfinished run" (only a per-career check-unfinished exists), so Dashboard
-// can't ask the server whether to enable "Continue Simulation". Instead we
-// track the active run client-side: this page records it here whenever a
-// run is in progress, and clears it once the run completes. Dashboard reads
-// these to know what to resume.
+// Dashboard doesn't call the backend to decide whether to enable "Continue
+// Simulation" — instead we track the active run client-side: this page
+// records it here whenever a run is in progress, and clears it once the run
+// completes. Dashboard reads these to know what to resume. (The backend
+// /check-unfinished endpoint does report the user's newest unfinished run,
+// but Dashboard hasn't been switched over to it.)
 const ACTIVE_RUN_ID_KEY = 'activeSimulationRunId'
 const ACTIVE_RUN_CAREER_KEY = 'activeSimulationCareerTitle'
 
@@ -501,8 +504,12 @@ function Simulation() {
     if (!currentChunk || showIntroLoader || !dialogueBoxRevealed) return undefined
 
     const fullText = currentChunk.text || ''
-    const totalTicks = Math.max(1, Math.floor(MAX_TYPE_DURATION_MS / TYPE_INTERVAL_MS))
-    const charsPerTick = Math.max(1, Math.ceil(fullText.length / totalTicks))
+    // Fixed rate for every line. Previously charsPerTick was scaled up from
+    // the chunk's own length to keep total typing time under a ceiling,
+    // which made longer lines type faster than short ones — so a career
+    // with wordier dialogue felt paced differently. Impatient players have
+    // Skip >> / Enter to jump to the full text.
+    const charsPerTick = TYPE_CHARS_PER_TICK
 
     let shown = 0
 
@@ -636,6 +643,10 @@ function Simulation() {
         />
       )}
 
+      {!allChunksShown && currentChunk?.phone && (
+        <PhoneCallOverlay name={currentChunk.speaker} />
+      )}
+
       {!allChunksShown && currentChunk && (
         <div
           onClick={handleDialogueClick}
@@ -654,7 +665,17 @@ function Simulation() {
           }}
         >
           {currentChunk.speaker && currentChunk.speaker !== 'Narrator' && (
-            <div className="font-serif text-lg text-[#d9a94f] mb-2">{currentChunk.speaker}</div>
+            <div className="font-serif text-lg text-[#d9a94f] mb-2 flex items-center gap-2">
+              {currentChunk.phone && (
+                <Phone className="animate-call-wobble h-4 w-4" fill="currentColor" />
+              )}
+              {currentChunk.speaker}
+              {currentChunk.phone && (
+                <span className="text-xs font-sans uppercase tracking-[0.2em] text-[#f2e9dc]/45">
+                  on the phone
+                </span>
+              )}
+            </div>
           )}
           <p className="min-h-[3.5em] whitespace-pre-line text-base leading-relaxed text-[#f2e9dc]">
             {displayedText}
