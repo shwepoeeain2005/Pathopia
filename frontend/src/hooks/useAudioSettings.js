@@ -50,3 +50,15 @@ export function useAudioSettings() {
     setVolume: (volume) => updateSettings({ volume }),
   }
 }
+
+// Non-hook accessors for audioEngine.js, which is a plain module (not a
+// component) and needs to read/react to the same settings without being
+// able to call a hook.
+export function getAudioSettings() {
+  return settings
+}
+
+export function subscribeAudioSettings(listener) {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}

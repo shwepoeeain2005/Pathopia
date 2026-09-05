@@ -147,6 +147,64 @@ p {
     animation: slowZoom 20s infinite ease-in-out;
 }
 
+/* Scroll-reveal: an element fades and rises into place the first time it
+   scrolls into view, instead of just being there on load (see
+   useScrollReveal.js on the plain-JS pages; Landing.tsx has its own typed
+   copy of the same idea). Toggled once per element and left alone after —
+   it doesn't reverse if you scroll back past it. */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.scroll-reveal--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Shared night-sky page background: two tiled starfields over a dark-top /
+   purple-bottom gradient, a soft lift from the lower edge and a faint glow
+   upper-left. Fixed so the sky holds still while the page scrolls. Applied
+   to the logged-in app page roots (Dashboard, Career Selection, History,
+   Reflection); each page keeps its own root class for layout and colour. */
+.night-sky-bg {
+  background-color: #0b0917;
+  background-image:
+    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='360'%20height='360'%3E%3Cg%20fill='%23ffffff'%3E%3Ccircle%20cx='66.39'%20cy='68.4'%20r='0.96'%20opacity='0.77'/%3E%3Ccircle%20cx='155.08'%20cy='137.18'%20r='0.81'%20opacity='0.73'/%3E%3Ccircle%20cx='195.84'%20cy='195.7'%20r='0.88'%20opacity='0.58'/%3E%3Ccircle%20cx='163.85'%20cy='142.25'%20r='0.65'%20opacity='0.84'/%3E%3Ccircle%20cx='203.48'%20cy='334.04'%20r='0.87'%20opacity='0.54'/%3E%3Ccircle%20cx='71.7'%20cy='75.2'%20r='0.78'%20opacity='0.62'/%3E%3Ccircle%20cx='148.26'%20cy='263.39'%20r='0.91'%20opacity='0.58'/%3E%3Ccircle%20cx='44.08'%20cy='242.65'%20r='0.64'%20opacity='0.81'/%3E%3Ccircle%20cx='72.34'%20cy='288.96'%20r='0.57'%20opacity='0.74'/%3E%3Ccircle%20cx='156.96'%20cy='139.3'%20r='0.69'%20opacity='0.5'/%3E%3Ccircle%20cx='51.3'%20cy='90.92'%20r='0.71'%20opacity='0.74'/%3E%3Ccircle%20cx='105.41'%20cy='205.59'%20r='0.77'%20opacity='0.7'/%3E%3Ccircle%20cx='309.35'%20cy='344.63'%20r='0.89'%20opacity='0.52'/%3E%3Ccircle%20cx='57.47'%20cy='93.32'%20r='0.61'%20opacity='0.55'/%3E%3Ccircle%20cx='93.44'%20cy='118.32'%20r='0.66'%20opacity='0.57'/%3E%3Ccircle%20cx='56.94'%20cy='264.07'%20r='0.82'%20opacity='0.72'/%3E%3Ccircle%20cx='215.5'%20cy='205.32'%20r='0.58'%20opacity='0.57'/%3E%3Ccircle%20cx='95.44'%20cy='300.13'%20r='0.66'%20opacity='0.62'/%3E%3Ccircle%20cx='189.23'%20cy='217.72'%20r='0.85'%20opacity='0.81'/%3E%3Ccircle%20cx='307.59'%20cy='50.45'%20r='0.98'%20opacity='0.77'/%3E%3Ccircle%20cx='112.92'%20cy='142.45'%20r='0.94'%20opacity='0.85'/%3E%3Ccircle%20cx='348.37'%20cy='231.58'%20r='0.84'%20opacity='0.7'/%3E%3Ccircle%20cx='124.53'%20cy='5.42'%20r='0.74'%20opacity='0.77'/%3E%3Ccircle%20cx='324.15'%20cy='121.87'%20r='0.86'%20opacity='0.58'/%3E%3Ccircle%20cx='65.63'%20cy='176.85'%20r='0.96'%20opacity='0.89'/%3E%3Ccircle%20cx='21.51'%20cy='11.17'%20r='0.79'%20opacity='0.78'/%3E%3Ccircle%20cx='196.67'%20cy='246.66'%20r='0.73'%20opacity='0.79'/%3E%3Ccircle%20cx='167.08'%20cy='147.56'%20r='0.89'%20opacity='0.54'/%3E%3Ccircle%20cx='261.71'%20cy='20.42'%20r='0.61'%20opacity='0.68'/%3E%3Ccircle%20cx='247.89'%20cy='216.84'%20r='0.84'%20opacity='0.57'/%3E%3Ccircle%20cx='249.28'%20cy='167.97'%20r='1.4'%20opacity='0.85'/%3E%3Ccircle%20cx='146.59'%20cy='152.97'%20r='1.45'%20opacity='0.82'/%3E%3Ccircle%20cx='77.72'%20cy='159.61'%20r='1.36'%20opacity='0.98'/%3E%3Ccircle%20cx='142.34'%20cy='305.81'%20r='1.21'%20opacity='0.88'/%3E%3C/g%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='240'%20height='240'%3E%3Cg%20fill='%23ffffff'%3E%3Ccircle%20cx='137.41'%20cy='49.75'%20r='0.36'%20opacity='0.76'/%3E%3Ccircle%20cx='19.07'%20cy='108.25'%20r='0.44'%20opacity='0.47'/%3E%3Ccircle%20cx='119.66'%20cy='112.5'%20r='0.6'%20opacity='0.71'/%3E%3Ccircle%20cx='120.4'%20cy='41.24'%20r='0.47'%20opacity='0.57'/%3E%3Ccircle%20cx='69.16'%20cy='122.94'%20r='0.36'%20opacity='0.6'/%3E%3Ccircle%20cx='84.51'%20cy='192.22'%20r='0.64'%20opacity='0.67'/%3E%3Ccircle%20cx='162.31'%20cy='211.67'%20r='0.72'%20opacity='0.73'/%3E%3Ccircle%20cx='75.65'%20cy='156.1'%20r='0.66'%20opacity='0.49'/%3E%3Ccircle%20cx='45.27'%20cy='127.32'%20r='0.41'%20opacity='0.63'/%3E%3Ccircle%20cx='196.06'%20cy='143.44'%20r='0.61'%20opacity='0.63'/%3E%3Ccircle%20cx='74.98'%20cy='43.56'%20r='0.69'%20opacity='0.53'/%3E%3Ccircle%20cx='14.52'%20cy='88.75'%20r='0.46'%20opacity='0.63'/%3E%3Ccircle%20cx='180.93'%20cy='86.95'%20r='0.38'%20opacity='0.8'/%3E%3Ccircle%20cx='20.25'%20cy='216.56'%20r='0.36'%20opacity='0.78'/%3E%3Ccircle%20cx='37.41'%20cy='105.74'%20r='0.61'%20opacity='0.67'/%3E%3Ccircle%20cx='68.57'%20cy='141.98'%20r='0.71'%20opacity='0.53'/%3E%3Ccircle%20cx='172.99'%20cy='35.16'%20r='0.43'%20opacity='0.72'/%3E%3Ccircle%20cx='216.22'%20cy='224.25'%20r='0.36'%20opacity='0.71'/%3E%3Ccircle%20cx='112.89'%20cy='28.65'%20r='0.44'%20opacity='0.55'/%3E%3Ccircle%20cx='39.91'%20cy='56.38'%20r='0.66'%20opacity='0.62'/%3E%3Ccircle%20cx='68.11'%20cy='67.66'%20r='0.66'%20opacity='0.56'/%3E%3Ccircle%20cx='166.15'%20cy='16.05'%20r='0.5'%20opacity='0.67'/%3E%3Ccircle%20cx='197.34'%20cy='176.08'%20r='0.64'%20opacity='0.47'/%3E%3Ccircle%20cx='98.3'%20cy='67.43'%20r='0.39'%20opacity='0.47'/%3E%3Ccircle%20cx='222.26'%20cy='192.68'%20r='0.56'%20opacity='0.71'/%3E%3Ccircle%20cx='228.88'%20cy='6.45'%20r='0.61'%20opacity='0.47'/%3E%3Ccircle%20cx='181.15'%20cy='96.72'%20r='0.7'%20opacity='0.53'/%3E%3Ccircle%20cx='235.65'%20cy='229.35'%20r='0.58'%20opacity='0.61'/%3E%3Ccircle%20cx='232.97'%20cy='18.99'%20r='0.52'%20opacity='0.43'/%3E%3Ccircle%20cx='59.76'%20cy='171.39'%20r='0.58'%20opacity='0.78'/%3E%3Ccircle%20cx='87.51'%20cy='181.65'%20r='0.64'%20opacity='0.44'/%3E%3Ccircle%20cx='230.05'%20cy='22.12'%20r='0.54'%20opacity='0.66'/%3E%3Ccircle%20cx='59.42'%20cy='142.4'%20r='0.39'%20opacity='0.57'/%3E%3Ccircle%20cx='229.77'%20cy='184.15'%20r='0.66'%20opacity='0.52'/%3E%3Ccircle%20cx='45.29'%20cy='71'%20r='1.27'%20opacity='0.82'/%3E%3Ccircle%20cx='58.71'%20cy='186.72'%20r='1.38'%20opacity='0.98'/%3E%3C/g%3E%3C/svg%3E"),
+    radial-gradient(160% 70% at 50% 125%, rgba(138, 92, 214, 0.35) 0%, transparent 74%),
+    radial-gradient(50% 38% at 20% 10%, rgba(140, 135, 190, 0.1) 0%, transparent 75%),
+    linear-gradient(180deg, #0b0917 0%, #12102e 30%, #241a55 52%, #3f2790 72%, #563bb8 88%, #6a45cc 100%);
+  background-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat;
+  background-size: 360px 360px, 240px 240px, 100% 100%, 100% 100%, 100% 100%;
+  background-position: 0 0, 0 0, center, center, center;
+  background-attachment: fixed;
+}
+
+/* On night-sky pages the shared footer drops its solid plum panel and
+   floats directly on the starfield (matching how it already renders on
+   History). Landing / other public pages keep the solid footer. */
+.night-sky-bg .landing-footer {
+  background: transparent;
+}
+
+/* About reuses Landing's light section band — let the sky show through it
+   there instead of a floating pale rectangle. */
+.night-sky-bg .landing-section--periwinkle {
+  background: transparent;
+}
+
 /* Browser Autofill Styling Override */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,

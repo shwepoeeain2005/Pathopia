@@ -1,0 +1,271 @@
+/* Pre-simulation briefing — a glossy career card that morphs in over a
+   blurred backdrop, echoing the cards on the selection grid. */
+
+.briefing-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+/* Backdrop lives on a pseudo-element so it can fade in without also fading
+   the card — the card must stay fully visible for the image morph to read. */
+.briefing-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(16, 12, 32, 0.55);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  animation: briefing-overlay-in 0.3s ease both;
+}
+
+.briefing-card {
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Quicksand', system-ui, sans-serif;
+
+  position: relative;
+  z-index: 1;
+  width: min(480px, 100%);
+  padding: 30px 34px 36px;
+  border-radius: 32px;
+  text-align: center;
+  color: #14102b;
+  transform-origin: center;
+  background:
+    radial-gradient(130% 90% at 18% 0%, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(160deg, var(--grad-a) 0%, var(--grad-b) 52%, var(--grad-c) 100%);
+  box-shadow:
+    0 30px 60px rgba(16, 12, 32, 0.5),
+    0 8px 20px rgba(16, 12, 32, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42);
+}
+
+/* Copy and controls fade in near the end of the image's flight. */
+.briefing-card__title,
+.briefing-card__text,
+.briefing-card__continue,
+.briefing-card__close {
+  animation: briefing-card-in 0.4s ease 0.55s both;
+}
+
+/* Fallback when there's no origin image to morph from. */
+.briefing-card--pop {
+  animation: briefing-morph 0.62s cubic-bezier(0.34, 1.4, 0.5, 1) both;
+}
+
+/* Same three-stop career gradients as the selection cards. */
+.briefing-card[data-color='pink'] {
+  --grad-a: #f4a7c2;
+  --grad-b: #d76c8a;
+  --grad-c: #e0975a;
+}
+
+.briefing-card[data-color='blue'] {
+  --grad-a: #8fc9e6;
+  --grad-b: #5f8ed2;
+  --grad-c: #5bb48f;
+}
+
+.briefing-card[data-color='green'] {
+  --grad-a: #c6e585;
+  --grad-b: #8fc850;
+  --grad-c: #d9d858;
+}
+
+.briefing-card[data-color='orange'] {
+  --grad-a: #f2c485;
+  --grad-b: #dd9550;
+  --grad-c: #d55c4b;
+}
+
+.briefing-card__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: #14102b;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(16, 12, 32, 0.25);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.briefing-card__close:hover {
+  background: #fff;
+  transform: scale(1.08);
+}
+
+.briefing-card__art {
+  position: relative;
+  width: 100%;
+  height: 150px;
+  margin-top: -96px;
+  margin-bottom: 14px;
+}
+
+.briefing-card__art-img {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  max-width: 78%;
+  max-height: 128%;
+  object-fit: contain;
+  filter:
+    drop-shadow(0 10px 12px rgba(16, 12, 32, 0.25))
+    drop-shadow(0 30px 34px rgba(16, 12, 32, 0.32));
+  /* Starts only once the image has finished travelling in. */
+  animation: briefing-float 3.6s ease-in-out 1.05s infinite;
+}
+
+.briefing-card__title {
+  margin: 0 0 12px;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 1.7rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #14102b;
+}
+
+.briefing-card__text {
+  margin: 0 auto 24px;
+  max-width: 30rem;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgba(20, 16, 43, 0.72);
+}
+
+.briefing-card__career {
+  font-weight: 700;
+  color: #14102b;
+}
+
+/* Continue button — the dashboard action-button treatment. */
+.briefing-card__continue {
+  position: relative;
+  min-width: 200px;
+  padding: 15px 30px;
+  border-radius: 32px;
+  border: 1px solid #c7cad6;
+  background: linear-gradient(180deg, #16122b 0%, #241b45 48%, #4c3288 100%);
+  box-shadow:
+    0 0 0 1px rgba(199, 202, 214, 0.2) inset,
+    0 14px 30px rgba(16, 12, 32, 0.4);
+  color: #f2e9dc;
+  font-family: var(--font-serif);
+  font-size: 1.02rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+/* The Continue button drifts to the career's hue at the bottom, matching the
+   Start button on that career's selection card. */
+.briefing-card[data-color='pink'] .briefing-card__continue {
+  background: linear-gradient(180deg, #16122b 0%, #3a1b33 46%, #8a3a63 100%);
+}
+
+.briefing-card[data-color='blue'] .briefing-card__continue {
+  background: linear-gradient(180deg, #16122b 0%, #1c2145 46%, #35538f 100%);
+}
+
+.briefing-card[data-color='green'] .briefing-card__continue {
+  background: linear-gradient(180deg, #16122b 0%, #1b2e28 46%, #356b4c 100%);
+}
+
+.briefing-card[data-color='orange'] .briefing-card__continue {
+  background: linear-gradient(180deg, #16122b 0%, #3a1c39 46%, #7d3652 100%);
+}
+
+.briefing-card__continue::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 26px;
+  border: 1px solid rgba(199, 202, 214, 0.5);
+  pointer-events: none;
+}
+
+.briefing-card__continue::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-image:
+    radial-gradient(1.5px 1.5px at 16% 34%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(1px 1px at 36% 72%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(1.4px 1.4px at 60% 22%, rgba(255, 255, 255, 0.8), transparent 60%),
+    radial-gradient(1px 1px at 74% 60%, rgba(255, 255, 255, 0.6), transparent 60%),
+    radial-gradient(1.4px 1.4px at 88% 40%, rgba(255, 255, 255, 0.7), transparent 60%);
+}
+
+.briefing-card__continue:hover,
+.briefing-card__continue:focus-visible {
+  transform: translateY(-3px);
+  border-color: #eef0f6;
+  box-shadow:
+    0 0 0 1px rgba(199, 202, 214, 0.35) inset,
+    0 0 18px rgba(199, 202, 214, 0.3),
+    0 18px 34px rgba(16, 12, 32, 0.45);
+}
+
+@keyframes briefing-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes briefing-card-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* "Morph": a small rounded blob swells and settles into the full card. */
+@keyframes briefing-morph {
+  0% {
+    opacity: 0;
+    transform: scale(0.35) rotate(-7deg);
+    border-radius: 48% 52% 55% 45% / 55% 48% 52% 45%;
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.04) rotate(1.5deg);
+    border-radius: 38px;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+    border-radius: 32px;
+  }
+}
+
+@keyframes briefing-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-13px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .briefing-overlay,
+  .briefing-card {
+    animation-duration: 0.001s;
+  }
+
+  .briefing-card__art-img {
+    animation: none;
+  }
+}

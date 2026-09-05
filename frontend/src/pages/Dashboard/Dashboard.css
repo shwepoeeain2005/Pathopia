@@ -12,10 +12,7 @@
   padding-left: 236px;
   font-family: var(--font-sans);
   color: var(--cream);
-  background:
-    radial-gradient(1100px circle at 12% 15%, #eae8fd 0%, transparent 55%),
-    radial-gradient(900px circle at 88% 85%, #d5d2fd 0%, transparent 55%),
-    linear-gradient(135deg, #eae8fd 0%, #d5d2fd 100%);
+  /* Page background comes from the shared .night-sky-bg class (index.css). */
 }
 
 .dashboard * {
@@ -34,20 +31,45 @@
 
 .dashboard__welcome {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 250px;
   border-radius: 28px;
   overflow: hidden;
-  padding: 72px 44px;
+  padding: 48px 44px;
+  /* Welcome_card.gif (set inline in Dashboard.jsx), 1200x600. Covers the
+     whole card; the left is a same-colour fade over it so the heading
+     stays readable. */
   background-size: cover;
-  background-position: center 15%;
+  background-position: center bottom;
   background-repeat: no-repeat;
-  box-shadow: 0 20px 45px rgba(20, 16, 43, 0.25);
+  background-color: #241c58;
+  /* Silver frame + soft halo, matching the action buttons below. */
+  border: 1px solid rgba(232, 234, 255, 0.7);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12) inset,
+    0 0 28px rgba(220, 210, 245, 0.25),
+    0 20px 45px rgba(20, 16, 43, 0.3);
 }
 
 .dashboard__welcome-overlay {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: linear-gradient(135deg, rgba(20, 16, 43, 0.45) 0%, rgba(45, 33, 84, 0.35) 100%);
+  background:
+    /* left-to-right fade in the gif's own colour, revealing the gif on the right */
+    linear-gradient(
+      90deg,
+      #241c58 0%,
+      #241c58 20%,
+      rgba(36, 28, 88, 0.82) 45%,
+      rgba(36, 28, 88, 0.45) 70%,
+      rgba(36, 28, 88, 0.15) 90%,
+      rgba(36, 28, 88, 0) 100%
+    ),
+    /* overall dim */
+    linear-gradient(0deg, rgba(8, 6, 26, 0.22), rgba(8, 6, 26, 0.22));
 }
 
 .dashboard__welcome-content {
@@ -59,7 +81,7 @@
 .dashboard__welcome-heading {
   font-family: var(--font-serif);
   font-weight: 500;
-  font-size: 2.2rem;
+  font-size: 2.7rem;
   color: var(--gold);
   margin: 0 0 12px;
   text-shadow: 0 2px 12px rgba(20, 16, 43, 0.7);
@@ -85,13 +107,12 @@
 .dashboard__action-btn {
   position: relative;
   padding: 16px 20px;
-  border-radius: 16px;
-  border: 1px solid rgba(232, 234, 255, 0.75);
-  background: linear-gradient(160deg, rgba(244, 194, 219, 0.9) 0%, rgba(178, 132, 224, 0.9) 32%, rgba(107, 77, 148, 0.93) 62%, rgba(45, 33, 84, 0.97) 100%);
+  border-radius: 32px;
+  border: 1px solid #c7cad6;
+  background: linear-gradient(180deg, #16122b 0%, #241b45 48%, #4c3288 100%);
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.15) inset,
-    0 0 22px rgba(220, 210, 245, 0.35),
-    0 14px 30px rgba(20, 16, 43, 0.3);
+    0 0 0 1px rgba(199, 202, 214, 0.2) inset,
+    0 14px 30px rgba(20, 16, 43, 0.35);
   color: var(--cream);
   cursor: pointer;
   overflow: hidden;
@@ -105,25 +126,45 @@
   content: '';
   position: absolute;
   inset: 6px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 26px;
+  border: 1px solid rgba(199, 202, 214, 0.5);
   pointer-events: none;
+}
+
+/* Faint star specks scattered across the button background — matches the
+   sparkle field in the reference. The two large side stars from that
+   reference are deliberately left out. */
+.dashboard__action-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-image:
+    radial-gradient(1.6px 1.6px at 15% 32%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(1.1px 1.1px at 34% 72%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(1.5px 1.5px at 58% 20%, rgba(255, 255, 255, 0.8), transparent 60%),
+    radial-gradient(1px 1px at 72% 62%, rgba(255, 255, 255, 0.6), transparent 60%),
+    radial-gradient(1px 1px at 26% 88%, rgba(255, 255, 255, 0.55), transparent 60%),
+    radial-gradient(1.6px 1.6px at 88% 38%, rgba(255, 255, 255, 0.75), transparent 60%),
+    radial-gradient(1px 1px at 50% 52%, rgba(255, 255, 255, 0.45), transparent 60%);
 }
 
 .dashboard__action-btn:hover:not(:disabled),
 .dashboard__action-btn:focus-visible:not(:disabled) {
   transform: translateY(-3px);
-  border-color: rgba(255, 255, 255, 0.95);
+  border-color: #eef0f6;
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
-    0 0 32px rgba(255, 255, 255, 0.6),
-    0 18px 34px rgba(20, 16, 43, 0.35);
+    0 0 0 1px rgba(199, 202, 214, 0.35) inset,
+    0 0 18px rgba(199, 202, 214, 0.3),
+    0 18px 34px rgba(20, 16, 43, 0.4);
 }
 
 .dashboard__action-btn:disabled {
   cursor: not-allowed;
-  border-color: rgba(232, 234, 255, 0.25);
-  box-shadow: 0 10px 20px rgba(20, 16, 43, 0.2);
+  border-color: rgba(199, 202, 214, 0.3);
+  box-shadow: 0 10px 20px rgba(20, 16, 43, 0.25);
 }
 
 .dashboard__action-btn:disabled .dashboard__action-label,
@@ -133,22 +174,25 @@
 
 .dashboard__action-sparkle {
   position: absolute;
+  z-index: 1;
   width: 12px;
   height: 12px;
   color: rgba(232, 234, 255, 0.9);
 }
 
 .dashboard__action-sparkle--tl {
-  top: 12px;
-  left: 14px;
+  top: 14px;
+  left: 20px;
 }
 
 .dashboard__action-sparkle--br {
-  bottom: 12px;
-  right: 14px;
+  bottom: 14px;
+  right: 20px;
 }
 
 .dashboard__action-label {
+  position: relative;
+  z-index: 1;
   display: block;
   font-family: var(--font-serif);
   font-size: 1.05rem;

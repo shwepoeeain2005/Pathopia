@@ -4,13 +4,24 @@ import { Lightbulb, LogOut, Phone, Volume2 } from 'lucide-react'
 import LeaveSimulationModal from '../../components/LeaveSimulationModal.jsx'
 import PhoneCallOverlay from '../../components/PhoneCallOverlay.jsx'
 import AudioModal from '../../components/AudioModal.jsx'
+import CosmicModal from '../../components/CosmicModal.jsx'
 import LoadingScreen from '../../components/LoadingScreen.jsx'
 import { logout } from '../../lib/auth.js'
 import { useAudioSettings } from '../../hooks/useAudioSettings.js'
+import {
+  playMusic,
+  stopMusic,
+  playSfx,
+  pickMoodTrack,
+  startLoopingSfx,
+  stopLoopingSfx,
+  setMusicDucking,
+} from '../../lib/audioEngine.js'
+import { CHUNK_SFX, MUSIC, SFX } from '../../lib/audioTracks.js'
 
 const SIMULATION_API_BASE = '/api/simulation'
 const TOTAL_MOMENTS = 8
-const TYPE_INTERVAL_MS = 32
+const TYPE_INTERVAL_MS = 24
 // One character per tick, always — a fixed reveal rate so every line types
 // at the same speed regardless of its length (see the typing effect below).
 const TYPE_CHARS_PER_TICK = 1
@@ -21,6 +32,32 @@ const INTRO_LOADER_MIN_MS = 1300
 const INTRO_LOADER_FADE_MS = 500
 const DIALOGUE_BOX_DELAY_MS = 1000
 const DIALOGUE_BOX_ENTRANCE_MS = 500
+
+// Reflection generation starts on the backend the moment the final choice is
+// submitted. The frontend just polls the run until aiReflection lands; if it
+// hasn't after REFLECTION_FALLBACK_MS we force the synchronous regenerate
+// endpoint once, and give up entirely after REFLECTION_HARD_TIMEOUT_MS.
+const REFLECTION_POLL_INTERVAL_MS = 2000
+// After this long with no reflection, re-trigger the backend job (it may have
+// died on a transient Gemini 503); keep re-triggering at this cadence.
+const REFLECTION_FALLBACK_MS = 30000
+// Give up and show the retry card after this. Generously sized: a stuck
+// Gemini call plus its retries/backoff can legitimately take ~1 minute.
+const REFLECTION_HARD_TIMEOUT_MS = 180000
+
+// Static replacement for the old AI-generated "What You Experienced"
+// reflection section, shown as its own screen after the final Reality box
+// while the AI sections generate in the background. Placeholder wording —
+// lock the final Burmese copy before shipping, do not paraphrase.
+function whatYouExperiencedText(careerTitle) {
+  return (
+    `ဒီ Simulation တစ်ခုလုံးမှာ သင်သည် ${careerTitle} တစ်ဦးအဖြစ် ` +
+    'အလုပ်ခွင်တစ်နေ့တာကို ဖြတ်သန်းခဲ့ပါသည်။ အခြေအနေအမျိုးမျိုးတွင် ' +
+    'ရွေးချယ်ဆုံးဖြတ်ခဲ့ရပြီး၊ ရွေးချယ်မှုတိုင်း၏ နောက်ကွယ်မှ အမှန်တရားကိုလည်း ' +
+    'တွေ့မြင်ခဲ့ရပါသည်။ ဆက်လက်၍ သင့်ဆုံးဖြတ်ပုံများအပေါ် အခြေခံသည့် ' +
+    'ဆင်ခြင်စရာအချို့ကို တင်ပြပါမည်။'
+  )
+}
 
 // Dashboard doesn't call the backend to decide whether to enable "Continue
 // Simulation" — instead we track the active run client-side: this page
@@ -91,61 +128,75 @@ function splitIntoParagraphs(text) {
 }
 
 function RealityModal({ text, onNext }) {
-  const [visible, setVisible] = useState(false)
-
   useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true))
-    return () => cancelAnimationFrame(id)
+    playSfx(SFX.pianoJingle)
   }, [])
 
   return (
-    <div
-      className={`fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 transition-opacity duration-500 ease-out ${
-        visible ? 'opacity-100' : 'opacity-0'
-      }`}
-    >
-      <div
-        className={`relative flex flex-col w-full max-w-2xl max-h-[85vh] rounded-[2.8rem] border border-[#6b4d94]/30 text-[#f2e9dc] overflow-hidden transition-all duration-500 ease-out ${
-          visible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-3'
-        }`}
-        style={{
-          background: 'linear-gradient(150deg, #2d2154, #6b4d94)',
-          boxShadow: '0 20px 45px rgba(20, 16, 43, 0.55), 0 0 40px rgba(217, 169, 79, 0.25)',
-        }}
-      >
-        {/* Only this part scrolls when the reflection text is long, so the
-            Next button below stays put and reachable instead of scrolling
-            out of view with it. */}
-        <div className="overflow-y-auto p-10 pb-4">
-          <div className="flex flex-col items-center text-center">
-            <div className="w-14 h-14 rounded-full bg-[#6b4d94]/20 flex items-center justify-center mb-5 border border-[#6b4d94]/30">
-              <Lightbulb className="w-6 h-6 text-[#d9a94f]" />
-            </div>
-            <h2 className="font-serif text-3xl font-medium tracking-wide mb-6 text-[#d9a94f]">
-              Behind the Career
-            </h2>
-            <div className="w-full flex flex-col gap-4 text-left text-base leading-relaxed text-[#f2e9dc]/85">
-              {splitIntoParagraphs(text).map((paragraph, i) => (
-                <p key={i} className="whitespace-pre-line">
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-          </div>
+    <CosmicModal size="lg" labelledBy="reality-modal-title">
+      <div className="flex flex-col items-center text-center mb-5">
+        <div className="w-14 h-14 rounded-full bg-[#6b4d94]/25 flex items-center justify-center mb-5 border border-[#c4d0ff]/30">
+          <Lightbulb className="w-6 h-6 text-[#d9a94f]" />
         </div>
-
-        <div className="px-10 pb-10 pt-2">
-          <button
-            type="button"
-            onClick={onNext}
-            className="w-full py-4 rounded-full text-sm font-medium tracking-wide shadow-lg transition-transform duration-150 ease-out active:scale-95"
-            style={{ backgroundColor: '#d9a94f', color: '#14102b' }}
-          >
-            Next
-          </button>
-        </div>
+        <h2
+          id="reality-modal-title"
+          className="font-serif text-3xl font-medium tracking-wide text-[#d9a94f]"
+        >
+          Behind the Career
+        </h2>
       </div>
-    </div>
+
+      <div className="w-full flex flex-col gap-4 text-left text-base leading-relaxed text-[#f2e9dc]/85">
+        {splitIntoParagraphs(text).map((paragraph, i) => (
+          <p key={i} className="whitespace-pre-line">
+            {paragraph}
+          </p>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={onNext}
+        className="w-full mt-8 py-4 rounded-full text-sm font-medium tracking-wide shadow-lg transition-transform duration-150 ease-out active:scale-95"
+        style={{ backgroundColor: '#d9a94f', color: '#14102b' }}
+      >
+        Next
+      </button>
+    </CosmicModal>
+  )
+}
+
+// Shown once, right after the final Reality box: a static "What You
+// Experienced" recap while the AI reflection sections finish generating in
+// the background. "Get Reflection" moves on to the loading state.
+function ExperiencedScreen({ careerTitle, onContinue }) {
+  return (
+    <CosmicModal size="lg" labelledBy="experienced-screen-title">
+      <div className="flex flex-col items-center text-center mb-5">
+        <div className="w-14 h-14 rounded-full bg-[#6b4d94]/25 flex items-center justify-center mb-5 border border-[#c4d0ff]/30">
+          <Lightbulb className="w-6 h-6 text-[#d9a94f]" />
+        </div>
+        <h2
+          id="experienced-screen-title"
+          className="font-serif text-3xl font-medium tracking-wide text-[#d9a94f]"
+        >
+          What You Experienced
+        </h2>
+      </div>
+
+      <p className="w-full text-left text-base leading-relaxed text-[#f2e9dc]/85 whitespace-pre-line">
+        {whatYouExperiencedText(careerTitle)}
+      </p>
+
+      <button
+        type="button"
+        onClick={onContinue}
+        className="w-full mt-8 py-4 rounded-full text-sm font-medium tracking-wide shadow-lg transition-transform duration-150 ease-out active:scale-95"
+        style={{ backgroundColor: '#d9a94f', color: '#14102b' }}
+      >
+        Get Reflection
+      </button>
+    </CosmicModal>
   )
 }
 
@@ -174,11 +225,16 @@ function Simulation() {
   const [realityText, setRealityText] = useState(null)
   const [isBlackout, setIsBlackout] = useState(false)
 
-  // Set only if the separate reflection-generation call (kicked off from
-  // applyScenario, not bundled into choice submission since Gemini can take
-  // 40+ seconds) fails — on success we navigate straight to /reflection, so
-  // there's nothing to hold onto here.
+  // Reflection wait state, only meaningful once the run's final scene is
+  // reached (allChunksShown && status === 'completed'):
+  //   null      -> static "What You Experienced" screen + Get Reflection
+  //   'loading' -> LoadingScreen while we poll for the AI reflection
+  //   'error'   -> generation failed / timed out, with a retry
+  // Backend already started generating the moment the final choice was
+  // submitted; this is just the client waiting for it to land.
+  const [completionPhase, setCompletionPhase] = useState(null)
   const [reflectionError, setReflectionError] = useState(null)
+  const reflectionPollRef = useRef(null)
 
   const [showIntroLoader, setShowIntroLoader] = useState(true)
   const [introLoaderHiding, setIntroLoaderHiding] = useState(false)
@@ -242,6 +298,49 @@ function Simulation() {
   const currentChunk = chunks[chunkIndex] ?? null
   const momentNumber = getMomentNumber(simState?.phase)
 
+  // "Continue Simulation" on Dashboard only hands over a runId, not the
+  // scenario itself — resolving it (the /resume call below) can take a
+  // moment, and cold-starting the database occasionally takes much longer.
+  // Cut whatever page music was already playing the instant this page is
+  // entered, rather than leaving it running until real scene data (and the
+  // mood it picks) arrives.
+  useEffect(() => {
+    stopMusic()
+  }, [])
+
+  // Background music for the scene: each scenario's own `mood` (set on its
+  // dialogue chunks in Neon, from what's actually happening in that scene)
+  // — unless a chunk flags an ambience bed instead (e.g. an office scene),
+  // which replaces the mood music entirely rather than layering under it.
+  // `ambience` isn't set anywhere yet, so that branch is currently dormant.
+  useEffect(() => {
+    if (!simState) return
+    const officeScene = chunks.some((chunk) => chunk.ambience === 'office')
+    playMusic(
+      officeScene
+        ? MUSIC.officeAmbience
+        : pickMoodTrack(chunks, momentNumber, simState.status),
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [momentNumber, simState?.status, chunks])
+
+  // Dialogue chunks can flag a one-shot sound tied to that specific line —
+  // `phone: true` already drives the phone-call visual and now also rings
+  // once per phone chunk; `sfx` is the same idea for door-slam / heartbeat /
+  // footsteps, set by whoever authors that scenario's content (a handful of
+  // scenarios already set this; `heartbeat` and `walk-men` aren't used yet).
+  useEffect(() => {
+    if (!currentChunk) return
+    if (currentChunk.phone) playSfx(SFX.phoneRinging)
+    const cue = CHUNK_SFX[currentChunk.sfx]
+    if (cue) {
+      // Footsteps need to read clearly over the scene, so they get a boost
+      // above the standard one-shot volume.
+      const isWalking = currentChunk.sfx === 'walk-heels' || currentChunk.sfx === 'walk-men'
+      playSfx(cue, { level: isWalking ? 1.6 : 1 })
+    }
+  }, [currentChunk])
+
   // Mirrors characterVisible into a ref so the effect below can check
   // "was a character already on screen right before this chunk change"
   // without depending on characterVisible itself (which it also writes to).
@@ -250,13 +349,26 @@ function Simulation() {
     wasCharacterVisibleRef.current = characterVisible
   }, [characterVisible])
 
-  // Cross-fades the character art instead of popping in/out with the chunk.
-  // Swapping between two already-visible characters just swaps the art
-  // directly (no re-fade). Going from nothing to a character mounts the
-  // art invisible first, then reveals it on the next frame — the <img>
-  // element must already exist in the DOM for a CSS opacity transition to
-  // animate; setting src and opacity=100 in the same commit skips the
-  // animation entirely.
+  // Same idea for the portrait currently on screen — the effect below reads
+  // its speaker to decide "same person, new expression" vs "different person"
+  // without taking displayedCharacter as a dependency (which it also writes).
+  const displayedCharacterRef = useRef(null)
+  useEffect(() => {
+    displayedCharacterRef.current = displayedCharacter
+  }, [displayedCharacter])
+
+  // Fades the character art instead of popping in/out with the chunk.
+  // Three cases:
+  //   - Same speaker as the portrait already on screen (just a different
+  //     expression): swap the art directly, no re-fade.
+  //   - A different person now speaking while a portrait is still up: fade
+  //     the current one out, then swap in the new art and fade it back in —
+  //     scenes that rotate through several characters (common for the
+  //     UI/UX Designer career) would otherwise hard-cut between them.
+  //   - Nothing on screen yet: mount the art invisible first, then reveal
+  //     it on the next frame — the <img> must already exist in the DOM for
+  //     a CSS opacity transition to animate; setting src and opacity=100 in
+  //     the same commit skips the animation entirely.
   useEffect(() => {
     // Once dialogue is done and the choice box is about to take over, treat
     // it the same as "no character on this line" so whoever was speaking
@@ -275,8 +387,25 @@ function Simulation() {
     }
 
     if (wasCharacterVisibleRef.current) {
-      const timeoutId = setTimeout(() => setDisplayedCharacter(nextCharacter), 0)
-      return () => clearTimeout(timeoutId)
+      const sameSpeaker = displayedCharacterRef.current?.alt === nextCharacter.alt
+
+      if (sameSpeaker) {
+        const timeoutId = setTimeout(() => setDisplayedCharacter(nextCharacter), 0)
+        return () => clearTimeout(timeoutId)
+      }
+
+      // Different person: fade the old portrait out, then (once it's gone)
+      // swap the art and fade the new one in.
+      setCharacterVisible(false)
+      let rafId = null
+      const timeoutId = setTimeout(() => {
+        setDisplayedCharacter(nextCharacter)
+        rafId = requestAnimationFrame(() => setCharacterVisible(true))
+      }, CHOICE_FADE_OUT_MS)
+      return () => {
+        clearTimeout(timeoutId)
+        if (rafId) cancelAnimationFrame(rafId)
+      }
     }
 
     let rafId = null
@@ -346,40 +475,109 @@ function Simulation() {
     setIsTyping(false)
   }
 
-  // Kicks off AI reflection generation as its own request, separate from
-  // choice submission — Gemini can take 40+ seconds, so this runs while the
-  // LoadingScreen below is actually showing, instead of that screen just
-  // being decorative padding after the fact.
-  async function fetchReflection(runId) {
-    setReflectionError(null)
-    try {
-      const res = await fetch(`${SIMULATION_API_BASE}/${runId}/regenerate-reflection`, {
-        method: 'POST',
-        headers: authHeaders(),
-      })
-      if (res.status === 401 || res.status === 403) {
-        logout()
-        navigate('/login', { state: { sessionExpired: true } })
-        return
-      }
-      if (!res.ok) throw new Error(`reflection generation failed with status ${res.status}`)
-      const data = await res.json()
-      // Hand the finished reflection + trait totals to the Reflection page
-      // via router state so it never has to re-fetch. runId lets that page
-      // (eventually) deep-link into History.
-      navigate('/reflection', {
-        state: {
-          careerTitle: data.careerTitle,
-          aiReflection: data.aiReflection,
-          accumulatedScores: data.accumulatedScores,
-          runId: data.runId,
-        },
-      })
-    } catch (err) {
-      console.error(err)
-      setReflectionError(err.message || 'Something went wrong while preparing your reflection.')
+  // The keyboard-typing loop just follows isTyping — a separate effect
+  // instead of touching the typing state machine above, so it can't affect
+  // its timing. Music ducks at the same time so the typing sound reads
+  // clearly over it instead of the two competing.
+  useEffect(() => {
+    setMusicDucking(isTyping)
+    if (isTyping) {
+      startLoopingSfx('typing', SFX.keyboardTyping)
+    } else {
+      stopLoopingSfx('typing')
+    }
+    return () => {
+      stopLoopingSfx('typing')
+      setMusicDucking(false)
+    }
+  }, [isTyping])
+
+  function stopReflectionPolling() {
+    if (reflectionPollRef.current) {
+      clearTimeout(reflectionPollRef.current)
+      reflectionPollRef.current = null
     }
   }
+
+  // Poll the run until the backend has saved its AI reflection (generation
+  // started when the final choice was submitted, so it's usually already
+  // done by the time the player clicks "Get Reflection"). Falls back to the
+  // synchronous regenerate endpoint if it's taking too long, and errors out
+  // past a hard ceiling rather than polling forever.
+  function startReflectionPolling(runId) {
+    stopReflectionPolling()
+    setReflectionError(null)
+    setCompletionPhase('loading')
+
+    const startedAt = Date.now()
+    let lastFallbackAt = 0
+
+    async function tick() {
+      try {
+        const res = await fetch(`${SIMULATION_API_BASE}/${runId}`, {
+          headers: authHeaders(),
+        })
+        if (res.status === 401 || res.status === 403) {
+          logout()
+          navigate('/login', { state: { sessionExpired: true } })
+          return
+        }
+        if (!res.ok) throw new Error(`reflection fetch failed with status ${res.status}`)
+        const data = await res.json()
+
+        if (data.aiReflection) {
+          stopReflectionPolling()
+          // Hand the finished reflection + trait totals to the Reflection
+          // page via router state so it never has to re-fetch.
+          navigate('/reflection', {
+            state: {
+              careerTitle: data.careerTitle,
+              aiReflection: data.aiReflection,
+              accumulatedScores: data.accumulatedScores,
+              runId: data.runId,
+            },
+          })
+          return
+        }
+
+        const elapsed = Date.now() - startedAt
+        if (elapsed > REFLECTION_HARD_TIMEOUT_MS) {
+          stopReflectionPolling()
+          setReflectionError('Your reflection is taking longer than expected.')
+          setCompletionPhase('error')
+          return
+        }
+        if (
+          elapsed > REFLECTION_FALLBACK_MS &&
+          Date.now() - lastFallbackAt > REFLECTION_FALLBACK_MS
+        ) {
+          lastFallbackAt = Date.now()
+          // Nudge the backend to (re)start generation in case the job died;
+          // it returns immediately and the next poll picks up the result.
+          // The backend de-dupes, so this is safe to repeat.
+          fetch(`${SIMULATION_API_BASE}/${runId}/regenerate-reflection`, {
+            method: 'POST',
+            headers: authHeaders(),
+          }).catch(() => {})
+        }
+        reflectionPollRef.current = setTimeout(tick, REFLECTION_POLL_INTERVAL_MS)
+      } catch (err) {
+        console.error(err)
+        stopReflectionPolling()
+        setReflectionError(err.message || 'Something went wrong while preparing your reflection.')
+        setCompletionPhase('error')
+      }
+    }
+
+    tick()
+  }
+
+  // Clear any pending poll timer if the page unmounts mid-wait.
+  useEffect(() => {
+    return () => {
+      if (reflectionPollRef.current) clearTimeout(reflectionPollRef.current)
+    }
+  }, [])
 
   function applyScenario(data) {
     setSimState(data)
@@ -398,9 +596,11 @@ function Simulation() {
     setPendingNextState(null)
     setIsSubmitting(false)
     setReflectionError(null)
-    if (data.status === 'completed') {
-      fetchReflection(data.runId)
-    }
+    stopReflectionPolling()
+    // Back to the default wait state — the completed-run overlay shows the
+    // static "What You Experienced" screen until the player taps "Get
+    // Reflection", which starts polling.
+    setCompletionPhase(null)
   }
 
   // Swaps to the next moment behind a full-screen black fade: fade to
@@ -715,8 +915,8 @@ function Simulation() {
                 onClick={handleOptionClick}
                 className={`rounded-2xl border px-6 py-4 text-left backdrop-blur transition-all duration-200 disabled:opacity-60 ${
                   isSelected
-                    ? 'border-[#d9a94f] bg-[#d9a94f]/15 shadow-[0_0_26px_rgba(217,169,79,0.55)]'
-                    : 'border-[#6b4d94] bg-[#14102b]/55 hover:border-[#8a6bb3] hover:bg-[#14102b]/70 hover:shadow-[0_0_20px_rgba(217,169,79,0.3)]'
+                    ? 'border-[#d9a94f] bg-[#d9a94f]/25 shadow-[0_0_26px_rgba(217,169,79,0.55)]'
+                    : 'border-[#6b4d94] bg-[#14102b]/85 hover:border-[#8a6bb3] hover:bg-[#14102b]/95 hover:shadow-[0_0_20px_rgba(217,169,79,0.3)]'
                 }`}
               >
                 <span className="mr-2 font-semibold text-[#d9a94f]">{choice.optionKey}.</span>
@@ -732,28 +932,38 @@ function Simulation() {
         </div>
       )}
 
-      {allChunksShown && simState.status === 'completed' && (
-        reflectionError ? (
-          <div
-            className="fixed inset-0 z-[90] flex flex-col items-center justify-center gap-5 backdrop-blur-sm px-6 text-center"
-            style={{ backgroundColor: 'rgba(15, 9, 31, 0.85)' }}
+      {allChunksShown &&
+        simState.status === 'completed' &&
+        completionPhase !== 'loading' &&
+        completionPhase !== 'error' && (
+          <ExperiencedScreen
+            careerTitle={simState.careerTitle}
+            onContinue={() => startReflectionPolling(simState.runId)}
+          />
+        )}
+
+      {allChunksShown && simState.status === 'completed' && completionPhase === 'error' && (
+        <div
+          className="fixed inset-0 z-[90] flex flex-col items-center justify-center gap-5 backdrop-blur-sm px-6 text-center"
+          style={{ backgroundColor: 'rgba(15, 9, 31, 0.85)' }}
+        >
+          <p className="font-serif text-lg text-[#f2e9dc]/90 max-w-sm">
+            Something went wrong while preparing your reflection.
+          </p>
+          <p className="text-sm text-[#f2e9dc]/60 max-w-sm">{reflectionError}</p>
+          <button
+            type="button"
+            onClick={() => startReflectionPolling(simState.runId)}
+            className="px-8 py-3 rounded-full text-sm font-medium tracking-wide transition-transform duration-150 ease-out active:scale-95"
+            style={{ backgroundColor: '#d9a94f', color: '#14102b' }}
           >
-            <p className="font-serif text-lg text-[#f2e9dc]/90 max-w-sm">
-              Something went wrong while preparing your reflection.
-            </p>
-            <p className="text-sm text-[#f2e9dc]/60 max-w-sm">{reflectionError}</p>
-            <button
-              type="button"
-              onClick={() => fetchReflection(simState.runId)}
-              className="px-8 py-3 rounded-full text-sm font-medium tracking-wide transition-transform duration-150 ease-out active:scale-95"
-              style={{ backgroundColor: '#d9a94f', color: '#14102b' }}
-            >
-              Try Again
-            </button>
-          </div>
-        ) : (
-          <LoadingScreen text="Your reflection is being prepared..." />
-        )
+            Try Again
+          </button>
+        </div>
+      )}
+
+      {allChunksShown && simState.status === 'completed' && completionPhase === 'loading' && (
+        <LoadingScreen text="Your reflection is being prepared..." />
       )}
 
       {realityText && <RealityModal text={realityText} onNext={handleRealityNext} />}

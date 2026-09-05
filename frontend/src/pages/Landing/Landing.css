@@ -11,13 +11,29 @@
 
   font-family: var(--font-sans);
   color: var(--cream);
-  background: var(--near-black);
   /* Reset the inherited fixed-pixel line-height from :root's `font: 18px/145%`
      shorthand — a percentage line-height computes once against the root's
      font-size and that absolute value inherits unchanged into children, so
      large headings here were getting a line box far shorter than their own
      glyph height and stacking on top of each other. */
   line-height: 1.5;
+}
+
+/* Zero-specificity so a page that also carries .night-sky-bg (About) takes
+   the shared starfield instead; the plain Landing page still gets this. */
+:where(.landing) {
+  background: var(--near-black);
+}
+
+/* One continuous gradient behind every section below the hero — starting
+   at the sampled purple swatch right where the hero photo ends (not at the
+   top of the whole page, which is hidden behind the hero image anyway) and
+   darkening all the way down to the near-black used elsewhere in the app,
+   instead of each section painting its own band. Scoped to `.landing-main`
+   (not the page root) so About — which reuses these section classes on its
+   own `.night-sky-bg` starfield — is unaffected. */
+.landing-main {
+  background: linear-gradient(180deg, #5c1969 0%, var(--near-black) 100%);
 }
 
 .landing * {
@@ -198,21 +214,18 @@
   }
 }
 
-/* Alternating light section bands */
-
 .landing-section {
   padding: 88px 24px;
 }
 
-.landing-section--periwinkle {
-  background: #e9e3f5;
-}
-
+/* Sections no longer paint their own band — the page's single gradient
+   (see `:where(.landing)` above) shows straight through all of them. */
+.landing-section--periwinkle,
 .landing-section--peach {
-  background: #f7e9dd;
+  background: transparent;
 }
 
-/* Section titles that sit outside a card, directly on a light band. */
+/* Section titles that sit outside a card, directly on the page background. */
 
 .landing-section__heading {
   text-align: center;
@@ -236,8 +249,17 @@
 
 .landing-section__heading p {
   font-family: var(--font-sans);
-  color: var(--plum);
+  color: var(--cream);
   opacity: 0.75;
+}
+
+/* The standalone About page's title should match the other app page
+   headlines (Dashboard, Career Selection, History …), not the smaller
+   in-page section titles on the Landing page. */
+.landing--about .landing-section__heading h2 {
+  font-family: var(--font-serif);
+  font-size: clamp(2.25rem, 4vw, 2.9rem);
+  line-height: 1.2;
 }
 
 /* How Pathopia Works */
@@ -413,7 +435,7 @@
 /* Footer */
 
 .landing-footer {
-  background: var(--plum);
+  background: transparent;
   padding: 56px 40px 28px;
 }
 

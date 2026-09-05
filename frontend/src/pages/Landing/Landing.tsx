@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import heroBackground from '../../assets/landing/hero-background.png'
 import backToTopIcon from '../../assets/landing/back-to-top-icon.png'
 import Navbar from '../../components/PublicNavbar.jsx'
@@ -158,6 +159,43 @@ function HistoryIcon() {
 
 const FEATURE_ICONS = [ScenarioIcon, ReflectionIcon, SkillIcon, HistoryIcon]
 
+// Fades/rises a section in the first time it scrolls into view, instead of
+// it just being there on load — same idea (and the same .scroll-reveal /
+// .scroll-reveal--visible classes, in index.css) as useScrollReveal.js on
+// the plain-JS pages, kept as its own typed copy here rather than a
+// cross-file .js import into this .tsx file. Wraps each card in a plain
+// div so this can't fight a card's own hover transform/transition CSS.
+function Reveal({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [isVisible, setIsVisible] = useState(
+    () => typeof IntersectionObserver === 'undefined',
+  )
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return undefined
+    const node = ref.current
+    if (!node) return undefined
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true)
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -40px 0px' },
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div ref={ref} className={`scroll-reveal${isVisible ? ' scroll-reveal--visible' : ''}`}>
+      {children}
+    </div>
+  )
+}
+
 function Landing() {
   const [showBackToTop, setShowBackToTop] = useState(false)
 
@@ -187,12 +225,14 @@ function Landing() {
           </h1>
           <p className="landing-hero__slogan">{SLOGAN}</p>
           <div className="landing-hero__actions">
-            <a href="/login" className="landing-button">
+            {/* Link, not a plain <a> — a full page reload here would wipe
+                the audio engine's state (background music restarts). */}
+            <Link to="/login" className="landing-button">
               Sign in &amp; Explore
-            </a>
-            <a href="/register" className="landing-button">
+            </Link>
+            <Link to="/register" className="landing-button">
               Start your journey
-            </a>
+            </Link>
           </div>
         </div>
         <span className="landing-hero__scroll-indicator" aria-hidden="true">
@@ -200,18 +240,20 @@ function Landing() {
         </span>
       </header>
 
-      <main>
+      <main className="landing-main">
         <section className="landing-section landing-section--periwinkle landing-what">
           <div className="landing-section__heading">
             <h2>What is Pathopia?</h2>
           </div>
-          <div className="landing-box landing-box--violet">
-            <p className="landing-box__text">
-              Instead of simply telling you about careers, Pathopia lets you
-              experience realistic career situations and discover whether a
-              profession truly fits your strengths.
-            </p>
-          </div>
+          <Reveal>
+            <div className="landing-box landing-box--violet">
+              <p className="landing-box__text">
+                Instead of simply telling you about careers, Pathopia lets
+                you experience realistic career situations and discover
+                whether a profession truly fits your strengths.
+              </p>
+            </div>
+          </Reveal>
         </section>
 
         <section className="landing-section landing-section--peach landing-how">
@@ -223,23 +265,25 @@ function Landing() {
             {STEPS.map((step, index) => {
               const Icon = STEP_ICONS[index]
               return (
-                <article key={step.number} className="landing-step-card">
-                  <div className="landing-step-card__top">
-                    <span className="landing-step-card__badge">
-                      <Icon />
-                    </span>
-                    <span
-                      className="landing-step-card__number"
-                      aria-hidden="true"
-                    >
-                      {step.number}
-                    </span>
-                  </div>
-                  <h3 className="landing-step-card__title">{step.title}</h3>
-                  <p className="landing-step-card__text">
-                    {step.description}
-                  </p>
-                </article>
+                <Reveal key={step.number}>
+                  <article className="landing-step-card">
+                    <div className="landing-step-card__top">
+                      <span className="landing-step-card__badge">
+                        <Icon />
+                      </span>
+                      <span
+                        className="landing-step-card__number"
+                        aria-hidden="true"
+                      >
+                        {step.number}
+                      </span>
+                    </div>
+                    <h3 className="landing-step-card__title">{step.title}</h3>
+                    <p className="landing-step-card__text">
+                      {step.description}
+                    </p>
+                  </article>
+                </Reveal>
               )
             })}
           </div>
@@ -253,17 +297,19 @@ function Landing() {
             {FEATURES.map((feature, index) => {
               const Icon = FEATURE_ICONS[index]
               return (
-                <article key={feature.title} className="landing-feature-card">
-                  <div className="landing-feature-card__glow">
-                    <Icon />
-                  </div>
-                  <h3 className="landing-feature-card__title">
-                    {feature.title}
-                  </h3>
-                  <p className="landing-feature-card__text">
-                    {feature.description}
-                  </p>
-                </article>
+                <Reveal key={feature.title}>
+                  <article className="landing-feature-card">
+                    <div className="landing-feature-card__glow">
+                      <Icon />
+                    </div>
+                    <h3 className="landing-feature-card__title">
+                      {feature.title}
+                    </h3>
+                    <p className="landing-feature-card__text">
+                      {feature.description}
+                    </p>
+                  </article>
+                </Reveal>
               )
             })}
           </div>
@@ -273,16 +319,18 @@ function Landing() {
           <div className="landing-section__heading">
             <h2>About Project</h2>
           </div>
-          <div className="landing-box landing-box--violet">
-            <p className="landing-box__text">
-              Pathopia is a student-built project exploring how simulation
-              can make career discovery feel human, honest, and a little
-              wondrous.
-            </p>
-            <a href="/about" className="landing-box__link">
-              Meet Our Team
-            </a>
-          </div>
+          <Reveal>
+            <div className="landing-box landing-box--violet">
+              <p className="landing-box__text">
+                Pathopia is a student-built project exploring how simulation
+                can make career discovery feel human, honest, and a little
+                wondrous.
+              </p>
+              <Link to="/about" className="landing-box__link">
+                Meet Our Team
+              </Link>
+            </div>
+          </Reveal>
         </section>
       </main>
 

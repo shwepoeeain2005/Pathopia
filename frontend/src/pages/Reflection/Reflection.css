@@ -1,0 +1,46 @@
+/* Gentle up-down drift for the row illustrations — sells them as floating
+   above their ground shadow, same idea as CareerBriefingModal's art image. */
+@keyframes reflection-icon-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+.reflection-icon-float {
+  animation: reflection-icon-float 4.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reflection-icon-float {
+    animation: none;
+  }
+}
+
+/* Dims the shared .night-sky-bg starfield on this page only — a fixed
+   overlay painted between that background and the page content, so
+   Dashboard/Career Selection/History (which also use .night-sky-bg) are
+   untouched. */
+.reflection-page {
+  position: relative;
+}
+
+.reflection-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: rgba(6, 4, 14, 0.4);
+  pointer-events: none;
+}
+
+/* Targets only the two content wrappers (not the fixed back button, which
+   must keep its own `position: fixed` to stay pinned while the page
+   scrolls — a blanket `.reflection-page > *` rule was overriding that). */
+.reflection-page__content {
+  position: relative;
+  z-index: 1;
+}

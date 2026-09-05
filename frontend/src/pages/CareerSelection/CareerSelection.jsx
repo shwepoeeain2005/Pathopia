@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BarChart2, ClipboardCheck, Code2, PenTool } from 'lucide-react'
 import PrivateNavbar from '../../components/PrivateNavbar.jsx'
 import Footer from '../../components/Footer.jsx'
 import ResumeConflictModal from '../../components/ResumeConflictModal.jsx'
+import CareerBriefingModal from '../../components/CareerBriefingModal.jsx'
 import LoadingScreen from '../../components/LoadingScreen.jsx'
 import { logout } from '../../lib/auth.js'
+import { useScrollReveal, revealClass } from '../../hooks/useScrollReveal.js'
+import backToTopIcon from '../../assets/landing/back-to-top-icon.png'
 import './CareerSelection.css'
 
 const SIMULATION_API_BASE = '/api/simulation'
@@ -16,28 +18,28 @@ const CAREERS = [
     title: 'Data Analyst',
     tagline: 'Turn raw numbers into real decisions.',
     color: 'pink',
-    icon: BarChart2,
+    image: 'Data_Analyst',
   },
   {
     id: 'project-manager',
     title: 'Project Manager',
     tagline: 'Keep the moving pieces on track.',
     color: 'blue',
-    icon: ClipboardCheck,
+    image: 'Project_Manager',
   },
   {
     id: 'software-engineer',
     title: 'Software Engineer',
     tagline: 'Build the systems people rely on.',
     color: 'green',
-    icon: Code2,
+    image: 'Software_Engineer',
   },
   {
     id: 'ui-ux-designer',
     title: 'UI/UX Designer',
     tagline: 'Shape how people experience the product.',
     color: 'orange',
-    icon: PenTool,
+    image: 'Uiux_Designer',
   },
   {
     id: 'cyber-security-analyst',
@@ -104,12 +106,46 @@ function ClearIcon() {
   )
 }
 
+// A plain wrapper so each grid cell fades/rises in on scroll independently
+// of the career card's own hover transform/transition — putting the reveal
+// animation on the card itself would fight that CSS for the `transform`
+// and `transition` properties.
+function RevealCard({ children }) {
+  const [ref, isVisible] = useScrollReveal()
+  return (
+    <div ref={ref} className={revealClass(isVisible)}>
+      {children}
+    </div>
+  )
+}
+
 function CareerSelection() {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   const [conflict, setConflict] = useState(null)
+  const [briefing, setBriefing] = useState(null)
+  // Bounding rect of the clicked card's career image, so the briefing modal
+  // can morph that same image from the grid into its own layout.
+  const [briefingOrigin, setBriefingOrigin] = useState(null)
   const [errorMessage, setErrorMessage] = useState('')
   const [starting, setStarting] = useState(false)
+  // The unfinished-run check is fired when the briefing card opens and its
+  // in-flight response parked here, so by the time the user reads the card
+  // and hits Continue the result is usually already back.
+  const unfinishedCheckRef = useRef(null)
+  const [showBackToTop, setShowBackToTop] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > window.innerHeight * 0.6)
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const filteredCareers = CAREERS.filter((career) =>
     career.title.toLowerCase().includes(searchQuery.trim().toLowerCase()),
@@ -152,19 +188,46 @@ function CareerSelection() {
     navigate('/simulation', { state: { simulationState: startResult } })
   }
 
-  async function handleCareerClick(career) {
+  // Kick off the (career-agnostic) unfinished-run check without awaiting it,
+  // so it runs while the briefing card is on screen. `.catch` keeps a network
+  // failure from becoming an unhandled rejection — Continue falls back to a
+  // fresh request when the ref is empty.
+  function prefetchUnfinishedCheck() {
+    const token = localStorage.getItem('authToken')
+    unfinishedCheckRef.current = fetch(`${SIMULATION_API_BASE}/check-unfinished`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => null)
+  }
+
+  // Clicking a career opens the briefing card straight away; its career image
+  // morphs from the grid. The conflict prompt only appears once the user
+  // commits by hitting Continue, but the check behind it starts now.
+  function handleCareerClick(career, cardEl) {
+    setErrorMessage('')
+    const imgEl = cardEl && cardEl.querySelector('.career-card__art-img')
+    setBriefingOrigin(imgEl ? imgEl.getBoundingClientRect() : null)
+    setBriefing(career)
+    prefetchUnfinishedCheck()
+  }
+
+  async function handleBriefingContinue() {
+    const career = briefing
+    if (!career) return
+    setBriefing(null)
     setErrorMessage('')
     const token = localStorage.getItem('authToken')
 
     try {
       // Global check: does the user have ANY unfinished run, for any career?
       // The modal always names that run's career, not the one just clicked.
-      const checkResponse = await fetch(
-        `${SIMULATION_API_BASE}/check-unfinished`,
-        {
+      // Reuse the response the briefing-card open already started; only fire
+      // a fresh request if that one is missing or errored.
+      const checkResponse =
+        (await unfinishedCheckRef.current) ||
+        (await fetch(`${SIMULATION_API_BASE}/check-unfinished`, {
           headers: { Authorization: `Bearer ${token}` },
-        },
-      )
+        }))
+      unfinishedCheckRef.current = null
 
       if (!checkResponse.ok) {
         await handleFailedResponse(checkResponse)
@@ -174,6 +237,9 @@ function CareerSelection() {
       const unfinishedRun = await parseJsonOrNull(checkResponse)
 
       if (unfinishedRun) {
+        // A short beat so the briefing card's close and the conflict card's
+        // open read as one hand-off, not a jump-cut.
+        await new Promise((resolve) => setTimeout(resolve, 250))
         setConflict({
           runId: unfinishedRun.runId,
           currentCareerId: unfinishedRun.careerId,
@@ -244,7 +310,7 @@ function CareerSelection() {
   }
 
   return (
-    <div className="career-selection">
+    <div className="career-selection night-sky-bg">
       <PrivateNavbar />
 
       <label className="career-selection__search">
@@ -297,46 +363,48 @@ function CareerSelection() {
             {filteredCareers.map((career) => {
               if (career.comingSoon) {
                 return (
-                  <button
-                    key={career.id}
-                    type="button"
-                    className="career-card career-card--disabled"
-                    disabled
-                    aria-disabled="true"
-                  >
-                    <span className="career-card__badge">Coming Soon</span>
-                    <h2 className="career-card__title">{career.title}</h2>
-                  </button>
+                  <RevealCard key={career.id}>
+                    <button
+                      type="button"
+                      className="career-card career-card--disabled"
+                      disabled
+                      aria-disabled="true"
+                    >
+                      <span className="career-card__badge">Coming Soon</span>
+                      <h2 className="career-card__title">{career.title}</h2>
+                    </button>
+                  </RevealCard>
                 )
               }
 
-              const Icon = career.icon
-
               return (
-                <div
-                  key={career.id}
-                  className="career-card career-card--available"
-                  data-color={career.color}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => handleCareerClick(career)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault()
-                      handleCareerClick(career)
-                    }
-                  }}
-                >
-                  <div className="career-card__icon">
-                    <Icon size={22} strokeWidth={2.25} />
-                  </div>
-                  <div className="career-card__heading">
-                    <span className="career-card__dot" />
+                <RevealCard key={career.id}>
+                  <div
+                    className="career-card career-card--available"
+                    data-color={career.color}
+                    role="button"
+                    tabIndex={0}
+                    onClick={(event) => handleCareerClick(career, event.currentTarget)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        handleCareerClick(career, event.currentTarget)
+                      }
+                    }}
+                  >
+                    <div className="career-card__art">
+                      <img
+                        className="career-card__art-img"
+                        src={`/${career.image}_after_hover.png`}
+                        alt=""
+                        aria-hidden="true"
+                      />
+                    </div>
                     <h2 className="career-card__title">{career.title}</h2>
+                    <p className="career-card__tagline">{career.tagline}</p>
+                    <span className="career-card__start">Start</span>
                   </div>
-                  <p className="career-card__tagline">{career.tagline}</p>
-                  <span className="career-card__start">Start</span>
-                </div>
+                </RevealCard>
               )
             })}
           </div>
@@ -356,7 +424,25 @@ function CareerSelection() {
         />
       )}
 
+      {briefing && (
+        <CareerBriefingModal
+          career={briefing}
+          originRect={briefingOrigin}
+          onContinue={handleBriefingContinue}
+          onClose={() => setBriefing(null)}
+        />
+      )}
+
       {starting && <LoadingScreen />}
+
+      <button
+        type="button"
+        className={`career-selection__back-to-top${showBackToTop ? ' career-selection__back-to-top--visible' : ''}`}
+        onClick={scrollToTop}
+        aria-label="Back to top"
+      >
+        <img src={backToTopIcon} alt="" />
+      </button>
     </div>
   )
 }
