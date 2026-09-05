@@ -8,23 +8,26 @@ import Simulation from './pages/Simulation/Simulation';
 import Reflection from './pages/Reflection/Reflection';
 import History from './pages/History/History';
 import ProtectedRoute from './components/ProtectedRoute';
+import AudioProvider from './components/AudioProvider.jsx';
 
 function App() {
     return (
         <BrowserRouter>
-            <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/login" element={<PathopiaLogin />} />
-                <Route path="/register" element={<PathopiaLogin />} />
-                <Route path="/about" element={<About />} />
-                <Route element={<ProtectedRoute />}>
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/career-selection" element={<CareerSelection />} />
-                    <Route path="/simulation" element={<Simulation />} />
-                    <Route path="/reflection" element={<Reflection />} />
-                    <Route path="/history" element={<History />} />
-                </Route>
-            </Routes>
+            <AudioProvider>
+                <Routes>
+                    <Route path="/" element={<Landing />} />
+                    <Route path="/login" element={<PathopiaLogin />} />
+                    <Route path="/register" element={<PathopiaLogin />} />
+                    <Route path="/about" element={<About />} />
+                    <Route element={<ProtectedRoute />}>
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/career-selection" element={<CareerSelection />} />
+                        <Route path="/simulation" element={<Simulation />} />
+                        <Route path="/reflection" element={<Reflection />} />
+                        <Route path="/history" element={<History />} />
+                    </Route>
+                </Routes>
+            </AudioProvider>
         </BrowserRouter>
     );
 }

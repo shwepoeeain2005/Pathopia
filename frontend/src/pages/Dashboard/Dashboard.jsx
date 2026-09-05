@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PrivateNavbar from '../../components/PrivateNavbar.jsx'
 import Footer from '../../components/Footer.jsx'
-import heroBackground from '../../assets/landing/hero-background.png'
+import welcomeGif from '../../assets/Welcome_card.gif'
 import './Dashboard.css'
 
 function SparkleIcon({ className }) {
@@ -43,13 +43,13 @@ function Dashboard() {
   })
 
   return (
-    <div className="dashboard">
+    <div className="dashboard night-sky-bg">
       <PrivateNavbar />
 
       <div className="dashboard__welcome-wrap">
         <section
           className="dashboard__welcome"
-          style={{ backgroundImage: `url(${heroBackground})` }}
+          style={{ backgroundImage: `url(${welcomeGif})` }}
         >
           <div className="dashboard__welcome-overlay" />
           <div className="dashboard__welcome-content">
@@ -74,7 +74,10 @@ function Dashboard() {
               activeRun && navigate('/simulation', { state: { runId: activeRun.runId } })
             }
           />
-          <DashboardActionButton label="Recent History" />
+          <DashboardActionButton
+            label="Recent History"
+            onClick={() => navigate('/history')}
+          />
         </div>
       </main>
 

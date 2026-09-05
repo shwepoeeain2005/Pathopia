@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import PrivateNavbar from '../../components/PrivateNavbar.jsx'
 import Footer from '../../components/Footer.jsx'
 import { logout } from '../../lib/auth.js'
+import { useScrollReveal, revealClass } from '../../hooks/useScrollReveal.js'
+import backToTopIcon from '../../assets/landing/back-to-top-icon.png'
+import './History.css'
 
 const SIMULATION_API_BASE = '/api/simulation'
 
@@ -35,6 +38,76 @@ function formatDate(isoString) {
   }).format(date)
 }
 
+function formatTime(isoString) {
+  if (!isoString) return ''
+  const date = new Date(isoString)
+  if (Number.isNaN(date.getTime())) return ''
+  return new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date)
+}
+
+// Bucket the runs by the calendar day they finished (the "YYYY-MM-DD" head
+// of the zoneless timestamp), newest day first, newest run first within a
+// day.
+function groupByDate(entries) {
+  const buckets = new Map()
+  for (const entry of entries) {
+    const key = (entry.completedAt || '').slice(0, 10) || 'unknown'
+    if (!buckets.has(key)) buckets.set(key, [])
+    buckets.get(key).push(entry)
+  }
+
+  return [...buckets.entries()]
+    .sort(([a], [b]) => (a < b ? 1 : a > b ? -1 : 0))
+    .map(([dateKey, items]) => ({
+      dateKey,
+      dateLabel:
+        dateKey === 'unknown' ? 'Date unknown' : formatDate(items[0].completedAt),
+      items: [...items].sort((a, b) =>
+        (a.completedAt || '') < (b.completedAt || '') ? 1 : -1,
+      ),
+    }))
+}
+
+// One date panel, fading/rising in the first time it scrolls into view.
+// `.history__group` has no hover transform/transition of its own (unlike
+// the run cards inside it), so the reveal classes go directly on it —
+// no extra wrapper needed here.
+function HistoryGroup({ group, openingRunId, onViewReflection }) {
+  const [ref, isVisible] = useScrollReveal()
+  return (
+    <section ref={ref} className={`history__group ${revealClass(isVisible)}`}>
+      <h2 className="history__date">{group.dateLabel}</h2>
+      <ul className="history__list">
+        {group.items.map((entry) => {
+          const isOpening = openingRunId === entry.runId
+          return (
+            <li key={entry.runId} className="history-card">
+              <div className="history-card__info">
+                <h3 className="history-card__career">{entry.careerTitle}</h3>
+                <p className="history-card__time">{formatTime(entry.completedAt)}</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => onViewReflection(entry.runId)}
+                disabled={openingRunId !== null}
+                className="history-card__btn"
+              >
+                <span className="history-card__btn-label">
+                  {isOpening ? 'Opening…' : 'View Reflection'}
+                </span>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  )
+}
+
 function History() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
@@ -43,6 +116,27 @@ function History() {
   // runId of the card whose reflection is currently being fetched — used to
   // disable that card's button so a double-click can't fire two requests.
   const [openingRunId, setOpeningRunId] = useState(null)
+  // 'all', or a "YYYY-MM-DD" key from the date dropdown.
+  const [dateFilter, setDateFilter] = useState('all')
+  const [showBackToTop, setShowBackToTop] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > window.innerHeight * 0.6)
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const groups = useMemo(() => groupByDate(entries), [entries])
+  const visibleGroups =
+    dateFilter === 'all'
+      ? groups
+      : groups.filter((group) => group.dateKey === dateFilter)
 
   // A missing/expired/invalid token reaches the backend as an anonymous
   // request, which Spring Security rejects with a bare 403 — treat 401/403
@@ -126,6 +220,9 @@ function History() {
           aiReflection: data.aiReflection,
           accumulatedScores: data.accumulatedScores,
           runId: data.runId,
+          // Tells Reflection.jsx it's being reopened, not shown fresh at the
+          // end of a simulation — swaps the bottom buttons for a back link.
+          fromHistory: true,
         },
       })
     } catch (err) {
@@ -137,14 +234,17 @@ function History() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#14102b] pl-[76px] font-sans text-[#f2e9dc] sm:pl-[236px]">
+    <div className="history night-sky-bg min-h-screen w-full pl-[76px] font-sans text-[#f2e9dc] sm:pl-[236px]">
       <PrivateNavbar />
 
       <main className="mx-auto max-w-3xl px-5 pb-24 pt-28 sm:pt-32">
         <header className="mb-8 text-center">
-          <h1 className="font-serif text-3xl font-medium tracking-wide text-[#d9a94f] sm:text-4xl">
+          <h1 className="font-serif text-4xl font-medium tracking-wide text-[#d9a94f] sm:text-5xl">
             Your Career History
           </h1>
+          <p className="mt-3 text-[#c7c9d6]">
+            Look back on the simulations you&rsquo;ve completed.
+          </p>
         </header>
 
         {errorMessage && (
@@ -179,41 +279,48 @@ function History() {
             </button>
           </div>
         ) : (
-          <ul className="flex flex-col gap-5">
-            {entries.map((entry) => {
-              const isOpening = openingRunId === entry.runId
-              return (
-                <li
-                  key={entry.runId}
-                  className="flex flex-col gap-4 rounded-3xl p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8"
-                  style={CARD_STYLE}
-                >
-                  <div>
-                    <h2 className="font-serif text-xl font-medium tracking-wide text-[#f2e9dc] sm:text-2xl">
-                      {entry.careerTitle}
-                    </h2>
-                    <p className="mt-1 text-sm text-[#f2e9dc]/70">
-                      {formatDate(entry.completedAt)}
-                    </p>
-                  </div>
+          <>
+            <div className="history__filter">
+              <label className="history__filter-label" htmlFor="history-date-filter">
+                Filter by date
+              </label>
+              <select
+                id="history-date-filter"
+                className="history__filter-select"
+                value={dateFilter}
+                onChange={(event) => setDateFilter(event.target.value)}
+              >
+                <option value="all">All dates</option>
+                {groups.map((group) => (
+                  <option key={group.dateKey} value={group.dateKey}>
+                    {group.dateLabel}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleViewReflection(entry.runId)}
-                    disabled={openingRunId !== null}
-                    className="shrink-0 self-start rounded-full px-6 py-2.5 text-sm font-medium tracking-wide shadow-lg transition-transform duration-150 ease-out active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 sm:self-auto"
-                    style={{ backgroundColor: '#d9a94f', color: '#14102b' }}
-                  >
-                    {isOpening ? 'Opening…' : 'View Reflection'}
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
+            {visibleGroups.map((group) => (
+              <HistoryGroup
+                key={group.dateKey}
+                group={group}
+                openingRunId={openingRunId}
+                onViewReflection={handleViewReflection}
+              />
+            ))}
+          </>
         )}
       </main>
 
       <Footer />
+
+      <button
+        type="button"
+        className={`history__back-to-top${showBackToTop ? ' history__back-to-top--visible' : ''}`}
+        onClick={scrollToTop}
+        aria-label="Back to top"
+      >
+        <img src={backToTopIcon} alt="" />
+      </button>
     </div>
   )
 }

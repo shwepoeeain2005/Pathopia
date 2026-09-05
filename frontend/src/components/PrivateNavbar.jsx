@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import logoFull from '../assets/landing/logo-full.png'
 import { logout } from '../lib/auth'
 import ProfileModal from './ProfileModal'
@@ -112,12 +112,20 @@ function PrivateNavbar() {
 
         <div className="private-nav__links">
           {NAV_LINKS.map((link) => (
-            <a key={link.label} href={link.href} className="private-nav__item">
+            <NavLink
+              key={link.label}
+              to={link.href}
+              className={({ isActive }) =>
+                isActive
+                  ? 'private-nav__item private-nav__item--active'
+                  : 'private-nav__item'
+              }
+            >
               <span className="private-nav__item-icon">
                 <link.icon />
               </span>
               <span className="private-nav__item-label">{link.label}</span>
-            </a>
+            </NavLink>
           ))}
         </div>
 

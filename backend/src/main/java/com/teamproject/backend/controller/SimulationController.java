@@ -101,10 +101,11 @@ public class SimulationController {
     }
 
     /**
-     * Fallback endpoint: retries reflection generation for a completed run
-     * that doesn't have one yet (e.g. automatic generation failed due to
-     * a transient API issue). The frontend should call this if it receives
-     * a completed run with a null aiReflection.
+     * Fallback endpoint: re-triggers background reflection generation for a
+     * completed run that doesn't have one yet (e.g. the job started at
+     * completion died on a transient Gemini error). Returns the run's current
+     * state right away — it never blocks on Gemini. The frontend polls
+     * GET /{runId} for the result.
      */
     @PostMapping("/{runId}/regenerate-reflection")
     public ResponseEntity<?> regenerateReflection(@PathVariable String runId) {

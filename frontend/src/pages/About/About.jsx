@@ -7,7 +7,13 @@ function About() {
   const isLoggedIn = Boolean(localStorage.getItem('authToken'))
 
   return (
-    <div className={isLoggedIn ? 'landing landing--private-nav' : 'landing'}>
+    <div
+      className={
+        isLoggedIn
+          ? 'landing landing--about landing--private-nav night-sky-bg'
+          : 'landing landing--about night-sky-bg'
+      }
+    >
       {isLoggedIn ? <PrivateNavbar /> : <PublicNavbar />}
 
       <main>
