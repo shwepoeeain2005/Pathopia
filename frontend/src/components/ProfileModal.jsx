@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Camera, Pencil, User as UserIcon, X } from 'lucide-react'
+import CosmicModal from './CosmicModal.jsx'
 
 const PROFILE_API_URL = '/api/auth/profile'
 
@@ -71,26 +72,23 @@ function ProfileModal({ onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div
-        className="relative w-full max-w-lg p-10 rounded-[2.8rem] border border-[#6b4d94]/30 text-[#f2e9dc]"
-        style={{
-          background: 'linear-gradient(150deg, #2d2154, #6b4d94)',
-          boxShadow: '0 20px 45px rgba(20, 16, 43, 0.55), 0 0 40px rgba(107, 77, 148, 0.3)',
-        }}
+    <CosmicModal onClose={onClose} labelledBy="profile-modal-title">
+      <button
+        type="button"
+        onClick={onClose}
+        data-sfx="decline"
+        className="absolute top-6 right-6 text-[#f2e9dc]/80 hover:text-[#d9a94f] transition-colors z-10"
+        aria-label="Close"
       >
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-8 right-8 text-[#f2e9dc]/80 hover:text-[#d9a94f] transition-colors"
-          aria-label="Close"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <X className="w-5 h-5" />
+      </button>
 
-        <h2 className="text-center font-serif text-4xl font-medium tracking-wide mb-12 text-[#d9a94f]">
-          Profile
-        </h2>
+      <h2
+        id="profile-modal-title"
+        className="text-center font-serif text-4xl font-medium tracking-wide mb-12 text-[#d9a94f]"
+      >
+        Profile
+      </h2>
 
         <div className="flex justify-center mb-8">
           <div className="group relative w-28 h-28">
@@ -190,9 +188,9 @@ function ProfileModal({ onClose }) {
         >
           {isSaving ? 'Applying...' : 'Apply'}
         </button>
-      </div>
-    </div>
+    </CosmicModal>
   )
 }
+
 
 export default ProfileModal

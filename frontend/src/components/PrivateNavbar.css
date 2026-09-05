@@ -4,6 +4,10 @@
   --cream: #f2e9dc;
   --private-nav-width: 236px;
 
+  /* Lighter starfield violet — reads as a raised panel against the dark
+     History page, and still holds cream text on the light Dashboard /
+     Career Selection backgrounds. */
+
   --font-serif: 'Playfair Display', Georgia, serif;
   --font-sans: 'Quicksand', system-ui, sans-serif;
 
@@ -12,13 +16,70 @@
   gap: 32px;
   width: var(--private-nav-width);
   padding: 28px 16px;
-  background: var(--plum);
+  background: linear-gradient(180deg, #341c5e 0%, #4a2a86 34%, #6c40b4 68%, #9061d4 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
   z-index: 40;
   overflow-y: auto;
+}
+
+/* Scattered twinkle stars + a shooting-star streak, painted behind the
+   nav's content (z-index: -1 stays inside the nav's own stacking context). */
+.private-nav::before,
+.private-nav::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.private-nav::before {
+  inset: 0;
+  background-repeat: no-repeat;
+  background-image:
+    /* Tiny extra-bright twinkles clustered near the top. */
+    radial-gradient(circle 0.6px at 12% 3%, #ffffff, transparent 100%),
+    radial-gradient(circle 0.5px at 31% 5%, #ffffff, transparent 100%),
+    radial-gradient(circle 0.7px at 52% 2%, #ffffff, transparent 100%),
+    radial-gradient(circle 0.5px at 63% 8%, #ffffff, transparent 100%),
+    radial-gradient(circle 0.6px at 77% 4%, #ffffff, transparent 100%),
+    radial-gradient(circle 0.5px at 88% 11%, #ffffff, transparent 100%),
+    radial-gradient(circle 0.6px at 25% 13%, #ffffff, transparent 100%),
+    radial-gradient(circle 0.5px at 45% 15%, #ffffff, transparent 100%),
+    radial-gradient(circle 0.7px at 70% 17%, #ffffff, transparent 100%),
+    radial-gradient(circle 0.5px at 8% 19%, #ffffff, transparent 100%),
+    radial-gradient(circle 1.6px at 22% 9%, rgba(255, 255, 255, 0.95), transparent 100%),
+    radial-gradient(circle 1.1px at 68% 6%, rgba(255, 255, 255, 0.75), transparent 100%),
+    radial-gradient(circle 1.8px at 84% 16%, rgba(255, 255, 255, 0.9), transparent 100%),
+    radial-gradient(circle 1.1px at 40% 20%, rgba(255, 255, 255, 0.6), transparent 100%),
+    radial-gradient(circle 1.5px at 14% 33%, rgba(255, 255, 255, 0.85), transparent 100%),
+    radial-gradient(circle 1px at 74% 30%, rgba(255, 255, 255, 0.6), transparent 100%),
+    radial-gradient(circle 1.7px at 90% 44%, rgba(255, 255, 255, 0.85), transparent 100%),
+    radial-gradient(circle 1.1px at 30% 46%, rgba(255, 255, 255, 0.6), transparent 100%),
+    radial-gradient(circle 1.4px at 55% 40%, rgba(255, 255, 255, 0.7), transparent 100%),
+    radial-gradient(circle 1.6px at 18% 60%, rgba(255, 255, 255, 0.8), transparent 100%),
+    radial-gradient(circle 1px at 66% 58%, rgba(255, 255, 255, 0.55), transparent 100%),
+    radial-gradient(circle 1.7px at 86% 72%, rgba(255, 255, 255, 0.8), transparent 100%),
+    radial-gradient(circle 1.1px at 34% 72%, rgba(255, 255, 255, 0.6), transparent 100%),
+    radial-gradient(circle 1.5px at 58% 84%, rgba(255, 255, 255, 0.75), transparent 100%),
+    radial-gradient(circle 1px at 78% 90%, rgba(255, 255, 255, 0.55), transparent 100%),
+    radial-gradient(circle 1.3px at 16% 88%, rgba(255, 255, 255, 0.6), transparent 100%),
+    radial-gradient(circle 1.1px at 46% 95%, rgba(255, 255, 255, 0.5), transparent 100%);
+}
+
+.private-nav::after {
+  top: 44px;
+  left: 22px;
+  width: 96px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.85) 100%);
+  box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.45);
+  transform: rotate(28deg);
+  transform-origin: left center;
 }
 
 .private-nav__logo {
@@ -92,6 +153,12 @@
   background: rgba(217, 169, 79, 0.14);
 }
 
+/* Current page — same treatment as hover. */
+.private-nav__item--active {
+  color: var(--gold);
+  background: rgba(217, 169, 79, 0.14);
+}
+
 .private-nav__profile {
   display: flex;
   align-items: center;
@@ -119,7 +186,9 @@
   gap: 14px;
   padding: 8px 40px 8px 8px;
   border-radius: 999px;
-  background: var(--plum);
+  /* Sibling of .private-nav, not a descendant — can't read its custom
+     props, so the violet is a literal here. */
+  background: #6a3faf;
   box-shadow: 0 10px 24px rgba(20, 16, 43, 0.3);
 }
 
@@ -129,7 +198,7 @@
 
 .private-nav__profile--floating:hover,
 .private-nav__profile--floating:focus-visible {
-  background: var(--plum);
+  background: #6932b6;
   box-shadow:
     0 10px 24px rgba(20, 16, 43, 0.3),
     0 0 14px rgba(217, 169, 79, 0.4);

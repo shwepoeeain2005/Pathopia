@@ -12,10 +12,7 @@
   padding-left: 236px;
   font-family: var(--font-sans);
   color: var(--cream);
-  background:
-    radial-gradient(1100px circle at 12% 15%, #eae8fd 0%, transparent 55%),
-    radial-gradient(900px circle at 88% 85%, #d5d2fd 0%, transparent 55%),
-    linear-gradient(135deg, #eae8fd 0%, #d5d2fd 100%);
+  /* Page background comes from the shared .night-sky-bg class (index.css). */
 }
 
 .career-selection * {
@@ -33,22 +30,30 @@
   width: min(260px, calc(100vw - 268px - 220px));
   padding: 12px 20px;
   border-radius: 999px;
-  background: linear-gradient(120deg, #ffe4ef 0%, #dcecff 100%);
-  box-shadow: 0 10px 24px rgba(20, 16, 43, 0.12);
-  color: var(--plum);
+  /* Transparent — the search sits directly on the night-sky background,
+     with just a hairline border and a light blur so the text stays legible. */
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: transparent;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: #ffffff;
 }
 
 .career-selection__search svg {
+  position: relative;
+  z-index: 1;
   flex-shrink: 0;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.5;
   stroke-linecap: round;
   stroke-linejoin: round;
-  opacity: 0.6;
+  opacity: 0.95;
 }
 
 .career-selection__search input {
+  position: relative;
+  z-index: 1;
   flex: 1;
   min-width: 0;
   border: none;
@@ -57,15 +62,19 @@
   font-family: var(--font-sans);
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--plum);
+  color: #ffffff;
+  caret-color: #ffffff;
+  text-shadow: 0 1px 2px rgba(20, 16, 43, 0.25);
 }
 
 .career-selection__search input::placeholder {
-  color: rgba(45, 33, 84, 0.55);
+  color: rgba(255, 255, 255, 0.8);
   font-weight: 500;
 }
 
 .career-selection__search-clear {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -76,7 +85,7 @@
   border: none;
   border-radius: 50%;
   background: transparent;
-  color: var(--plum);
+  color: #ffffff;
   cursor: pointer;
 }
 
@@ -100,14 +109,14 @@
 .career-selection__main {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 150px 32px 96px;
+  padding: 118px 32px 96px;
   text-align: center;
 }
 
 .career-selection__heading {
   font-family: var(--font-serif);
   font-weight: 600;
-  font-size: 2.4rem;
+  font-size: 2.9rem;
   line-height: 1.2;
   margin: 0;
   background: linear-gradient(90deg, #e8c58e 0%, #eca950 50%, #e8c58e 100%);
@@ -119,9 +128,9 @@
 }
 
 .career-selection__subheading {
-  margin: 12px 0 48px;
-  color: var(--plum);
-  opacity: 0.8;
+  margin: 12px 0 0;
+  color: #c7c9d6;
+  opacity: 1;
 }
 
 .career-selection__no-results {
@@ -166,12 +175,20 @@
 .career-selection__grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 28px;
+  column-gap: 88px;
+  row-gap: 120px;
+  max-width: 880px;
+  margin: 128px auto 0;
 }
 
 .career-card {
   position: relative;
   display: flex;
+  /* The disabled cards render as a <button>, which — unlike the available
+     cards' <div> — doesn't stretch to fill its grid cell by default; it
+     shrinks to fit its text content instead. Force full width so both
+     variants match the grid column exactly. */
+  width: 100%;
   flex-direction: column;
   border: 2px solid transparent;
   border-radius: 22px;
@@ -182,13 +199,22 @@
   text-align: left;
   transition:
     border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    box-shadow 0.2s ease,
+    transform 0.25s ease;
+}
+
+.career-card--available {
+  align-items: center;
+  text-align: center;
+  min-height: 360px;
 }
 
 .career-card--disabled {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  /* Same box as the available cards so the grid reads as one consistent set. */
+  min-height: 360px;
   text-align: center;
   background: linear-gradient(160deg, rgba(45, 33, 84, 0.55), rgba(107, 77, 148, 0.55));
   box-shadow:
@@ -219,102 +245,196 @@
 
 /* Available career cards */
 
+/* Each card is a two-tone diagonal gradient (lighter tint at the top-left,
+   deeper saturated tone at the bottom-right) with a soft top-left sheen and
+   a layered shadow — the reference dashboard's glossy 3D card look. */
+
+/* Three stops: the hue's light tint at the top, its saturated mid-tone,
+   then a subtle drift into a neighbouring hue at the bottom. */
+
 .career-card[data-color='pink'] {
-  --card-bg: #fbe9ef;
-  --card-accent: #d87998;
-  --card-glow: rgba(216, 121, 152, 0.35);
+  --card-grad-a: #f4a7c2;
+  --card-grad-b: #d76c8a;
+  --card-grad-c: #e0975a; /* orangey */
+  --card-tint: #fbe4ec;
+  --card-glow: rgba(207, 92, 134, 0.45);
 }
 
 .career-card[data-color='blue'] {
-  --card-bg: #e9f2fb;
-  --card-accent: #79a5d8;
-  --card-glow: rgba(121, 165, 216, 0.35);
+  --card-grad-a: #8fc9e6;
+  --card-grad-b: #5f8ed2;
+  --card-grad-c: #5bb48f; /* greenish */
+  --card-tint: #e4eefb;
+  --card-glow: rgba(90, 132, 212, 0.45);
 }
 
 .career-card[data-color='green'] {
-  --card-bg: #e9fbf3;
-  --card-accent: #79d8ab;
-  --card-glow: rgba(121, 216, 171, 0.35);
+  --card-grad-a: #c6e585;
+  --card-grad-b: #8fc850;
+  --card-grad-c: #d9d858; /* yellowish */
+  --card-tint: #eef7dd;
+  --card-glow: rgba(130, 192, 76, 0.45);
 }
 
 .career-card[data-color='orange'] {
-  --card-bg: #fbf2e9;
-  --card-accent: #d8a579;
-  --card-glow: rgba(216, 165, 121, 0.35);
+  --card-grad-a: #f2c485;
+  --card-grad-b: #dd9550;
+  --card-grad-c: #d55c4b; /* warm red */
+  --card-tint: #fbeede;
+  --card-glow: rgba(213, 92, 75, 0.45);
 }
 
 .career-card--available {
-  gap: 14px;
-  background: var(--card-bg);
-  box-shadow: 0 14px 30px rgba(20, 16, 43, 0.12);
+  gap: 10px;
+  overflow: visible;
+  background:
+    radial-gradient(130% 90% at 18% 0%, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(160deg, var(--card-grad-a) 0%, var(--card-grad-b) 52%, var(--card-grad-c) 100%);
+  box-shadow:
+    0 24px 50px rgba(20, 16, 43, 0.28),
+    0 6px 16px rgba(20, 16, 43, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42);
 }
 
 .career-card--available:hover {
-  border-color: var(--card-accent);
+  transform: translateY(-6px);
   box-shadow:
-    0 14px 30px rgba(20, 16, 43, 0.12),
-    0 0 16px var(--card-glow);
+    0 34px 64px rgba(20, 16, 43, 0.32),
+    0 0 30px var(--card-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42);
 }
 
 .career-card--available:focus-visible {
-  outline: 3px solid var(--card-accent);
+  outline: 3px solid var(--plum);
   outline-offset: 3px;
 }
 
-.career-card__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  background: var(--card-accent);
-  color: #fff;
+.career-card__art {
+  position: relative;
+  width: 100%;
+  height: 190px;
+  margin-top: -80px;
+  margin-bottom: 32px;
+  overflow: visible;
 }
 
-.career-card__heading {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* Only the "after hover" art is used; on hover it pops forward with a
+   translateY + scale for a lightweight 3D lift. The layered drop-shadows
+   give the floating image depth against the card. */
+.career-card__art-img {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter:
+    drop-shadow(0 8px 10px rgba(20, 16, 43, 0.22))
+    drop-shadow(0 28px 34px rgba(20, 16, 43, 0.32));
+  transition:
+    transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 0.4s ease;
+  will-change: transform;
 }
 
-.career-card__dot {
-  width: 8px;
-  height: 8px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: var(--card-accent);
+.career-card--available:hover .career-card__art-img {
+  transform: translateY(-16px) scale(1.08);
+  filter:
+    drop-shadow(0 10px 12px rgba(20, 16, 43, 0.24))
+    drop-shadow(0 40px 46px rgba(20, 16, 43, 0.36));
 }
 
 .career-card--available .career-card__title {
-  color: var(--plum);
-  font-size: 1.35rem;
+  color: var(--near-black);
+  font-weight: 700;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .career-card--available .career-card__tagline {
-  flex: 1;
-  color: var(--plum);
-  opacity: 0.7;
+  color: rgba(20, 16, 43, 0.6);
+  opacity: 1;
+  /* Reserve two lines so a one-line and a two-line tagline take the same
+     vertical space and every card's Start button ends up level. */
+  min-height: 3rem;
 }
 
+/* Same treatment as the dashboard action buttons: dark-to-purple gradient,
+   silver border + inner ring, a faint star-speck field, and a hover lift. */
 .career-card__start {
-  align-self: flex-end;
-  margin-top: 4px;
-  padding: 10px 26px;
+  position: relative;
+  align-self: center;
+  /* Pin to the card's bottom edge so every card's button lines up,
+     regardless of how many lines the tagline wraps to. */
+  margin-top: auto;
+  padding: 13px 34px;
   border-radius: 999px;
-  background: var(--card-accent);
-  color: #fff;
-  font-family: var(--font-sans);
-  font-weight: 600;
-  font-size: 0.95rem;
+  border: 1px solid #c7cad6;
+  background: linear-gradient(180deg, #16122b 0%, #241b45 48%, #4c3288 100%);
+  box-shadow:
+    0 0 0 1px rgba(199, 202, 214, 0.2) inset,
+    0 12px 26px rgba(20, 16, 43, 0.35);
+  color: var(--cream);
+  overflow: hidden;
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 0.98rem;
+  letter-spacing: 0.03em;
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+/* Each Start button keeps the dark top but drifts to its career's hue at the
+   bottom, matching that card's colour. */
+.career-card[data-color='pink'] .career-card__start {
+  background: linear-gradient(180deg, #16122b 0%, #3a1b33 46%, #8a3a63 100%);
+}
+
+.career-card[data-color='blue'] .career-card__start {
+  background: linear-gradient(180deg, #16122b 0%, #1c2145 46%, #35538f 100%);
+}
+
+.career-card[data-color='green'] .career-card__start {
+  background: linear-gradient(180deg, #16122b 0%, #1b2e28 46%, #356b4c 100%);
+}
+
+.career-card[data-color='orange'] .career-card__start {
+  background: linear-gradient(180deg, #16122b 0%, #3a1c39 46%, #7d3652 100%);
+}
+
+.career-card__start::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: inherit;
+  border: 1px solid rgba(199, 202, 214, 0.5);
+  pointer-events: none;
+}
+
+.career-card__start::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-image:
+    radial-gradient(1.4px 1.4px at 18% 34%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(1px 1px at 40% 70%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(1.3px 1.3px at 62% 24%, rgba(255, 255, 255, 0.8), transparent 60%),
+    radial-gradient(1px 1px at 82% 58%, rgba(255, 255, 255, 0.6), transparent 60%);
 }
 
 .career-card__start:hover {
-  transform: scale(1.06);
-  box-shadow: 0 0 12px var(--card-glow);
+  transform: translateY(-3px);
+  border-color: #eef0f6;
+  box-shadow:
+    0 0 0 1px rgba(199, 202, 214, 0.35) inset,
+    0 0 16px rgba(199, 202, 214, 0.3),
+    0 16px 30px rgba(20, 16, 43, 0.4);
 }
 
 .career-card__badge {
@@ -340,4 +460,46 @@
   .career-selection__grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Back to top */
+
+.career-selection__back-to-top {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 30;
+  width: 56px;
+  height: 56px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease,
+    box-shadow 0.25s ease;
+}
+
+.career-selection__back-to-top--visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.career-selection__back-to-top:hover {
+  box-shadow: 0 0 24px rgba(217, 169, 79, 0.55);
+}
+
+.career-selection__back-to-top img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }

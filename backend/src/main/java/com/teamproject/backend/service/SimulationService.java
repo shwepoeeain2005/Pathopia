@@ -1,7 +1,6 @@
 package com.teamproject.backend.service;
 
 import com.teamproject.backend.dto.HistoryEntry;
-import com.teamproject.backend.dto.ReflectionSections;
 import com.teamproject.backend.dto.SimulationStateResponse;
 import com.teamproject.backend.dto.SubmitChoiceRequest;
 import com.teamproject.backend.model.*;
@@ -33,7 +32,7 @@ public class SimulationService {
     private UserRepository userRepository;
 
     @Autowired
-    private GeminiReflectionService geminiReflectionService;
+    private ReflectionGenerationService reflectionGenerationService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -98,13 +97,13 @@ public class SimulationService {
 
     /**
      * Submits a choice for the current scenario in a run.
-     * If this choice completes the run (no next scenario), this just marks
-     * it completed and returns — it does NOT generate the AI reflection.
-     * Reflection generation can take 40+ seconds (Gemini), so it's kept out
-     * of this request entirely; the frontend triggers it as a separate call
-     * (generateReflection/regenerateReflection) once it can show a loading
-     * state tied to that actual wait, instead of blocking choice submission
-     * on it.
+     * If this choice completes the run (no next scenario), it marks the run
+     * completed and kicks off AI reflection generation on a background thread
+     * (see {@link ReflectionGenerationService#generateAndSaveAsync}) so that
+     * work overlaps the Reality box and "What You Experienced" screen the
+     * player sees next — this request itself never blocks on Gemini. The
+     * frontend polls the run until the reflection lands, and falls back to the
+     * synchronous regenerate-reflection endpoint if it doesn't.
      */
     public SimulationChoiceResult submitChoice(UUID runId, SubmitChoiceRequest request) {
         SimulationRun run = simulationRunRepository.findById(runId)
@@ -168,24 +167,29 @@ public class SimulationService {
         if (next == null) {
             run.setStatus("completed");
             run.setCompletedAt(LocalDateTime.now());
-            // aiReflection is intentionally left null here — the frontend
-            // calls regenerateReflection() as a separate request once it's
-            // ready to show a loading state for it.
         } else {
             run.setCurrentScenario(next);
         }
 
         SimulationRun savedRun = simulationRunRepository.save(run);
+
+        if ("completed".equals(savedRun.getStatus())) {
+            // Fire-and-forget: aiReflection is still null on the returned
+            // response; the frontend picks it up by polling.
+            reflectionGenerationService.generateAndSaveAsync(savedRun.getId());
+        }
+
         return new SimulationChoiceResult(savedRun, choice.getRealityText());
     }
 
     /**
-     * Generates (or regenerates) the AI reflection for a completed run.
-     * This is now the primary trigger for reflection generation — the
-     * frontend calls it right after a run completes, once it can show a
-     * loading state tied to this actual call — not just a fallback retry.
-     * Kept as a separate endpoint/method from submitChoice() specifically
-     * so the potentially 40+ second Gemini call never blocks that request.
+     * Re-triggers reflection generation for a completed run and returns its
+     * current state immediately — it never blocks on Gemini (running that
+     * multi-second call on the request thread pins a JDBC connection for its
+     * whole duration via open-in-view). Generation normally already started
+     * when the run completed (see {@link #submitChoice}); the frontend calls
+     * this only if that background job appears to have died, then keeps
+     * polling for the result.
      */
     public SimulationRun regenerateReflection(UUID runId) {
         SimulationRun run = simulationRunRepository.findById(runId)
@@ -195,14 +199,11 @@ public class SimulationService {
             throw new RuntimeException("This run is not completed yet");
         }
 
-        ReflectionSections sections = geminiReflectionService.generateReflection(run);
-        try {
-            run.setAiReflection(objectMapper.writeValueAsString(sections));
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to save generated reflection", e);
+        if (run.getAiReflection() == null) {
+            reflectionGenerationService.generateAndSaveAsync(runId);
         }
 
-        return simulationRunRepository.save(run);
+        return run;
     }
 
     /**

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import logoFull from '../assets/landing/logo-full.png'
 
 const SLOGAN = 'Not a test. Not a game. A glimpse.'
@@ -49,15 +50,17 @@ function Footer() {
 
         <div className="landing-footer__col">
           <h4 className="landing-footer__heading">Quick Links</h4>
-          <a href="/about" className="landing-footer__link">
+          {/* Link, not a plain <a> — a full page reload here would wipe the
+              audio engine's state (background music restarts from 0). */}
+          <Link to="/about" className="landing-footer__link">
             About
-          </a>
-          <a href="/login" className="landing-footer__link">
+          </Link>
+          <Link to="/login" className="landing-footer__link">
             Login
-          </a>
-          <a href="/register" className="landing-footer__link">
+          </Link>
+          <Link to="/register" className="landing-footer__link">
             Register
-          </a>
+          </Link>
         </div>
 
         <div className="landing-footer__col">
