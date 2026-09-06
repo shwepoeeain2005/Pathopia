@@ -101,13 +101,23 @@
   pointer-events: none;
 }
 
-.cosmic-modal__body {
+/* Rounded clipping lives here, on its own element via `overflow: hidden` —
+   far more reliably respected by Chromium/Edge for radius-clipping than
+   relying on `.cosmic-modal__body`'s `overflow-y: auto` to also clip to a
+   curve (that combination let tall cards' bottom button visibly paint past
+   the rounded corner, even though its computed box was correctly inset).
+   Scrolling itself still lives on `.cosmic-modal__body`, one level in. */
+.cosmic-modal__clip {
   position: relative;
   z-index: 1;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.cosmic-modal__body {
   padding: 40px;
   max-height: calc(100vh - 52px);
   overflow-y: auto;
-  border-radius: inherit;
   scrollbar-width: thin;
 }
 

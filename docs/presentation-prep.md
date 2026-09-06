@@ -13,11 +13,11 @@ career shows "no scenarios yet", and it cannot be rebuilt from the code.
 
 ## A. Protect the story content (do this first)
 
-- [ ] **Instant snapshot (2 min, no tools):** Neon dashboard -> project ->
+- [x] **Instant snapshot (2 min, no tools):** Neon dashboard -> project ->
       **Branches** -> create a branch named `presentation-backup`. Frozen copy
-      of the data as of now.
+      of the data as of now. *(Done Sep 5 — `presentation-backup` branch created.)*
 
-- [ ] **Real export (do this too):** Neon dashboard -> **Connection Details**
+- [x] **Real export (do this too):** Neon dashboard -> **Connection Details**
       -> copy the `psql` connection string, then run:
       ```
       pg_dump "postgresql://USER:PASSWORD@HOST/DBNAME?sslmode=require" --no-owner --no-privileges -f pathopia-db-YYYY-MM-DD.sql
@@ -27,32 +27,59 @@ career shows "no scenarios yet", and it cannot be rebuilt from the code.
       docker run --rm postgres:17 pg_dump "postgresql://USER:PASSWORD@HOST/DBNAME?sslmode=require" > pathopia-db-YYYY-MM-DD.sql
       ```
       Put the file in `database/` and commit it — then it's version-controlled
-      and safe on more than one machine.
+      and safe on more than one machine. *(Done Sep 5 —
+      `database/pathopia-db-2026-09-05.sql`, 965KB, all 6 tables confirmed
+      present with real data. Note: Neon is on Postgres 18, not 17 — needed
+      `pg_dump` 18.x specifically, an older client refuses to dump a newer
+      server. Not yet committed — do that whenever you're ready.)*
 
-- [ ] **Confirm the data is actually there.** Neon SQL editor:
+- [x] **Confirm the data is actually there.** Neon SQL editor:
       ```sql
       SELECT count(*) FROM careers;
       SELECT count(*) FROM scenarios;
       SELECT count(*) FROM choices;
       ```
       If any count looks wrong, stop and investigate before doing anything else.
+      *(Done Sep 5, via the pg_dump output itself: careers=4, scenarios=76,
+      choices=292, simulation_runs=77, traits=20, users=25 — all reasonable.)*
 
 - [ ] **Back up `backend/.env`** — copy its contents into a password manager or
       somewhere safe off the machine. It is git-ignored, so it currently exists
       in exactly one place. Keys it holds: `GEMINI_API_KEY`, `DB_URL`,
       `DB_USER`, `DB_PASSWORD`, `JWT_SECRET`.
 
+- [ ] **NEW (found Sep 5): Gemini API is geo-blocked on this network.**
+      Direct testing showed Gemini's API rejects requests from this machine's
+      network with `400 FAILED_PRECONDITION: User location is not supported
+      for the API use.` A VPN (routed through a supported country) fixes it —
+      confirmed working. **Whatever machine/network you present from must have
+      the VPN active for the entire presentation**, or every reflection will
+      silently fail again exactly like it did today. Test that the VPN itself
+      doesn't drop mid-session before presentation day. (This goes away
+      entirely if the backend ever gets deployed to a real host instead of
+      running locally — see the deployment discussion below — but that's on
+      hold for now given uncertain school internet.)
+
+- [x] **NEW (fixed Sep 5): Neon connection-pool drops.** HikariCP was using
+      default timeouts (30 min max-lifetime), far longer than Neon's ~5 min
+      auto-suspend — pooled connections were going stale and silently failing
+      requests (including reflection saves) with "connection has been closed."
+      Fixed in `backend/src/main/resources/application.properties` (shorter
+      `max-lifetime`/`idle-timeout` + a `keepalive-time` ping). **Requires a
+      backend restart to take effect** — do that before your next test run.
+
 ---
 
 ## B. Finish the reflection change & keep services alive
 
-- [ ] **Finalize the two placeholder Burmese strings** (marked with comments in
+- [x] **Finalize the two placeholder Burmese strings** (marked with comments in
       the code):
   - `whatYouExperiencedText()` in
     `frontend/src/pages/Simulation/Simulation.jsx` — the static "What You
     Experienced" paragraph shown after the final Reality box.
   - `REFLECTION_INTRO_TEXT` in `frontend/src/pages/Reflection/Reflection.jsx`
     — the two framing sentences under the disclaimer.
+  *(Reviewed Sep 5 — kept as-is, no changes needed.)*
 
 - [ ] **Test the new reflection flow end-to-end** — it has not run against live
       Gemini + a real playthrough yet. Play a career to the end and confirm:
