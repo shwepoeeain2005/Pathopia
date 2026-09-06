@@ -915,7 +915,7 @@ function Simulation() {
                 onClick={handleOptionClick}
                 className={`rounded-2xl border px-6 py-4 text-left backdrop-blur transition-all duration-200 disabled:opacity-60 ${
                   isSelected
-                    ? 'border-[#d9a94f] bg-[#d9a94f]/25 shadow-[0_0_26px_rgba(217,169,79,0.55)]'
+                    ? 'border-[#d9a94f] bg-[#14102b]/85 shadow-[0_0_26px_rgba(217,169,79,0.55)]'
                     : 'border-[#6b4d94] bg-[#14102b]/85 hover:border-[#8a6bb3] hover:bg-[#14102b]/95 hover:shadow-[0_0_20px_rgba(217,169,79,0.3)]'
                 }`}
               >

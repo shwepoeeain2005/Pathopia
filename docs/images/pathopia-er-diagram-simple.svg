@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="850" viewBox="0 0 1300 850" font-family="Verdana, Arial, sans-serif">
+<rect width="1300" height="850" fill="#ffffff"/>
+<g transform="translate(40,40)">
+<line x1="252.2" y1="228.0" x2="333.6" y2="277.7" stroke="#4a4a4a" stroke-width="2"/>
+<line x1="405.8" y1="322.6" x2="499.8" y2="382.0" stroke="#4a4a4a" stroke-width="2"/>
+<line x1="935.7" y1="168.0" x2="816.5" y2="238.4" stroke="#4a4a4a" stroke-width="2"/>
+<line x1="747.4" y1="283.7" x2="612.3" y2="382.0" stroke="#4a4a4a" stroke-width="2"/>
+<line x1="1000.0" y1="168.0" x2="1000.0" y2="223.0" stroke="#4a4a4a" stroke-width="2"/>
+<line x1="1000.0" y1="307.0" x2="1000.0" y2="382.0" stroke="#4a4a4a" stroke-width="2"/>
+<line x1="895.5" y1="458.0" x2="832.2" y2="481.0" stroke="#4a4a4a" stroke-width="2"/>
+<line x1="727.8" y1="481.0" x2="664.5" y2="458.0" stroke="#4a4a4a" stroke-width="2"/>
+<line x1="1000.0" y1="458.0" x2="1000.0" y2="503.0" stroke="#4a4a4a" stroke-width="2"/>
+<line x1="1000.0" y1="587.0" x2="1000.0" y2="652.0" stroke="#4a4a4a" stroke-width="2"/>
+<line x1="895.0" y1="659.1" x2="884.3" y2="656.0" stroke="#4a4a4a" stroke-width="2"/>
+<line x1="853.7" y1="609.4" x2="970.6" y2="458.0" stroke="#4a4a4a" stroke-width="2"/>
+<rect x="85" y="152" width="210" height="76" fill="#1a9fb0" stroke="#0f7a88" stroke-width="2"/>
+<text x="190" y="190" font-size="22" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="middle">users</text>
+<rect x="895" y="92" width="210" height="76" fill="#1a9fb0" stroke="#0f7a88" stroke-width="2"/>
+<text x="1000" y="130" font-size="22" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="middle">careers</text>
+<rect x="435" y="382" width="250" height="76" fill="#1a9fb0" stroke="#0f7a88" stroke-width="2"/>
+<text x="560" y="420" font-size="22" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="middle">simulation_runs</text>
+<rect x="895" y="382" width="210" height="76" fill="#1a9fb0" stroke="#0f7a88" stroke-width="2"/>
+<text x="1000" y="420" font-size="22" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="middle">scenarios</text>
+<rect x="895" y="652" width="210" height="76" fill="#1a9fb0" stroke="#0f7a88" stroke-width="2"/>
+<text x="1000" y="690" font-size="22" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="middle">choices</text>
+<rect x="85" y="652" width="210" height="76" fill="#1a9fb0" stroke="#0f7a88" stroke-width="2"/>
+<text x="190" y="690" font-size="22" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="middle">traits</text>
+<polygon points="370,258 447.5,300 370,342 292.5,300" fill="#0d3b66" stroke="#082948" stroke-width="2"/>
+<text x="370" y="300" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="middle">Has Many</text>
+<polygon points="780,218 855,260 780,302 705,260" fill="#0d3b66" stroke="#082948" stroke-width="2"/>
+<text x="780" y="260" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="middle">Played As</text>
+<polygon points="1000,223 1075,265 1000,307 925,265" fill="#0d3b66" stroke="#082948" stroke-width="2"/>
+<text x="1000" y="265" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="middle">Has Many</text>
+<polygon points="780,453 867.5,500 780,547 692.5,500" fill="#0d3b66" stroke="#082948" stroke-width="2"/>
+<text x="780" y="500" font-size="14" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="middle">Current Position</text>
+<polygon points="1000,503 1075,545 1000,587 925,545" fill="#0d3b66" stroke="#082948" stroke-width="2"/>
+<text x="1000" y="545" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="middle">Offers</text>
+<polygon points="830,598 917.5,640 830,682 742.5,640" fill="#0d3b66" stroke="#082948" stroke-width="2"/>
+<text x="830" y="640" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle" dominant-baseline="middle">Leads To</text>
+<text x="190" y="790" font-size="13" font-weight="normal" fill="#555" text-anchor="middle" dominant-baseline="middle">(no foreign key to careers in the live schema)</text>
+</g>
+</svg>
