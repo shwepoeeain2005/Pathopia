@@ -68,7 +68,9 @@ function CosmicModal({
         <CosmicStar className="cosmic-modal__star cosmic-modal__star--br" />
         <CosmicStar className="cosmic-modal__star cosmic-modal__star--br-sm" />
 
-        <div className="cosmic-modal__body">{children}</div>
+        <div className="cosmic-modal__clip">
+          <div className="cosmic-modal__body">{children}</div>
+        </div>
       </div>
     </div>
   )
