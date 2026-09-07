@@ -26,16 +26,24 @@ public class GeminiReflectionService {
     private final String apiKey;
     private final Executor reflectionExecutor;
 
-    private static final String GEMINI_URL =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
+    /**
+     * Base host for the Gemini REST API. Defaults to Google directly, but can be
+     * pointed at a reverse proxy (e.g. a Cloudflare Worker) via the
+     * {@code GEMINI_API_BASE_URL} env var. This is how we reach Gemini from
+     * regions Google geo-blocks without running a VPN on the machine.
+     */
+    private final String geminiUrl;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RestTemplate restTemplate;
 
     public GeminiReflectionService(
             @Value("${GEMINI_API_KEY}") String apiKey,
+            @Value("${GEMINI_API_BASE_URL:https://generativelanguage.googleapis.com}") String baseUrl,
             @Qualifier("reflectionExecutor") Executor reflectionExecutor) {
         this.apiKey = apiKey;
+        this.geminiUrl = baseUrl.replaceAll("/+$", "")
+                + "/v1beta/models/gemini-3.6-flash:generateContent";
         this.reflectionExecutor = reflectionExecutor;
 
         // Reflection calls are slow (tens of seconds) but must not hang
@@ -279,7 +287,7 @@ public class GeminiReflectionService {
 
         HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
-        String urlWithKey = GEMINI_URL + "?key=" + apiKey;
+        String urlWithKey = geminiUrl + "?key=" + apiKey;
 
         Map response = restTemplate.postForObject(urlWithKey, requestEntity, Map.class);
 
