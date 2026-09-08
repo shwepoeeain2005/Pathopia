@@ -35,15 +35,18 @@ const DIALOGUE_BOX_ENTRANCE_MS = 500
 
 // Reflection generation starts on the backend the moment the final choice is
 // submitted. The frontend just polls the run until aiReflection lands; if it
-// hasn't after REFLECTION_FALLBACK_MS we force the synchronous regenerate
-// endpoint once, and give up entirely after REFLECTION_HARD_TIMEOUT_MS.
+// hasn't after REFLECTION_FALLBACK_MS we force the regenerate endpoint ONCE,
+// and give up entirely after REFLECTION_HARD_TIMEOUT_MS.
 const REFLECTION_POLL_INTERVAL_MS = 2000
-// After this long with no reflection, re-trigger the backend job (it may have
-// died on a transient Gemini 503); keep re-triggering at this cadence.
-const REFLECTION_FALLBACK_MS = 30000
-// Give up and show the retry card after this. Generously sized: a stuck
-// Gemini call plus its retries/backoff can legitimately take ~1 minute.
-const REFLECTION_HARD_TIMEOUT_MS = 180000
+// After this long with no reflection, re-trigger the backend job once (it may
+// have died on a transient Gemini error). Only fired a single time — on a weak
+// connection a genuine call can be slow, and each re-trigger costs another
+// Gemini request against the free-tier daily quota.
+const REFLECTION_FALLBACK_MS = 90000
+// Give up and show the retry card after this. Generously sized: a single
+// Gemini call plus its retry/backoff can legitimately take a couple of minutes
+// on a poor connection.
+const REFLECTION_HARD_TIMEOUT_MS = 240000
 
 // Static replacement for the old AI-generated "What You Experienced"
 // reflection section, shown as its own screen after the final Reality box
@@ -510,7 +513,7 @@ function Simulation() {
     setCompletionPhase('loading')
 
     const startedAt = Date.now()
-    let lastFallbackAt = 0
+    let fallbackFired = false
 
     async function tick() {
       try {
@@ -547,14 +550,12 @@ function Simulation() {
           setCompletionPhase('error')
           return
         }
-        if (
-          elapsed > REFLECTION_FALLBACK_MS &&
-          Date.now() - lastFallbackAt > REFLECTION_FALLBACK_MS
-        ) {
-          lastFallbackAt = Date.now()
-          // Nudge the backend to (re)start generation in case the job died;
-          // it returns immediately and the next poll picks up the result.
-          // The backend de-dupes, so this is safe to repeat.
+        if (!fallbackFired && elapsed > REFLECTION_FALLBACK_MS) {
+          fallbackFired = true
+          // Nudge the backend to (re)start generation once, in case the job
+          // died; it returns immediately and the next poll picks up the result.
+          // The backend de-dupes. Fired only once — repeated nudges on a slow
+          // connection just burn Gemini requests.
           fetch(`${SIMULATION_API_BASE}/${runId}/regenerate-reflection`, {
             method: 'POST',
             headers: authHeaders(),
