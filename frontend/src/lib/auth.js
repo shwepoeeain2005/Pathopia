@@ -38,4 +38,5 @@ export function logout() {
     localStorage.removeItem('userId');
     localStorage.removeItem('fullName');
     localStorage.removeItem('userEmail');
+    localStorage.removeItem('profilePictureUrl');
 }

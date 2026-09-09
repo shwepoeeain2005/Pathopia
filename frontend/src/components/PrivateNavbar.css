@@ -212,6 +212,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
+  overflow: hidden;
   background: rgba(217, 169, 79, 0.18);
   border: 1px solid rgba(217, 169, 79, 0.4);
   color: var(--gold);
@@ -223,6 +224,12 @@
   stroke-width: 1.5;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.private-nav__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .private-nav__profile-name {

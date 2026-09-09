@@ -53,7 +53,8 @@ public class AuthController {
                 token,
                 savedUser.getId().toString(),
                 savedUser.getFullName(),
-                savedUser.getEmail()
+                savedUser.getEmail(),
+                savedUser.getProfilePictureUrl()
         );
 
         return ResponseEntity.ok(response);
@@ -80,7 +81,8 @@ public class AuthController {
                 token,
                 user.getId().toString(),
                 user.getFullName(),
-                user.getEmail()
+                user.getEmail(),
+                user.getProfilePictureUrl()
         );
 
         return ResponseEntity.ok(response);
