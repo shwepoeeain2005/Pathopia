@@ -84,7 +84,14 @@ public class SimulationService {
                 userId, "in_progress");
     }
 
-    public void deleteRun(UUID runId) {
+    public void deleteRun(UUID runId, UUID requestingUserId) {
+        SimulationRun run = simulationRunRepository.findById(runId)
+                .orElseThrow(() -> new RuntimeException("Simulation run not found"));
+
+        if (!run.getUser().getId().equals(requestingUserId)) {
+            throw new RuntimeException("This simulation run does not belong to you");
+        }
+
         simulationRunRepository.deleteById(runId);
     }
 
@@ -217,6 +224,13 @@ public class SimulationService {
 
         List<HistoryEntry> entries = new ArrayList<>();
         for (SimulationRun run : completedRuns) {
+            // A run can finish (status = "completed") without ever getting a
+            // saved reflection, e.g. a Gemini failure mid-generation. Leave
+            // those out of History rather than listing an entry that opens to
+            // nothing.
+            if (run.getAiReflection() == null) {
+                continue;
+            }
             String completedAtStr = run.getCompletedAt() != null
                     ? run.getCompletedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                     : null;

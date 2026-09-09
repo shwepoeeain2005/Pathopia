@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Trash2 } from 'lucide-react'
 import PrivateNavbar from '../../components/PrivateNavbar.jsx'
 import Footer from '../../components/Footer.jsx'
+import DeleteRunModal from '../../components/DeleteRunModal.jsx'
 import { logout } from '../../lib/auth.js'
 import { useScrollReveal, revealClass } from '../../hooks/useScrollReveal.js'
 import backToTopIcon from '../../assets/landing/back-to-top-icon.png'
@@ -75,7 +77,7 @@ function groupByDate(entries) {
 // `.history__group` has no hover transform/transition of its own (unlike
 // the run cards inside it), so the reveal classes go directly on it —
 // no extra wrapper needed here.
-function HistoryGroup({ group, openingRunId, onViewReflection }) {
+function HistoryGroup({ group, openingRunId, onViewReflection, onRequestDelete }) {
   const [ref, isVisible] = useScrollReveal()
   return (
     <section ref={ref} className={`history__group ${revealClass(isVisible)}`}>
@@ -90,16 +92,28 @@ function HistoryGroup({ group, openingRunId, onViewReflection }) {
                 <p className="history-card__time">{formatTime(entry.completedAt)}</p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => onViewReflection(entry.runId)}
-                disabled={openingRunId !== null}
-                className="history-card__btn"
-              >
-                <span className="history-card__btn-label">
-                  {isOpening ? 'Opening…' : 'View Reflection'}
-                </span>
-              </button>
+              <div className="history-card__actions">
+                <button
+                  type="button"
+                  onClick={() => onViewReflection(entry.runId)}
+                  disabled={openingRunId !== null}
+                  className="history-card__btn"
+                >
+                  <span className="history-card__btn-label">
+                    {isOpening ? 'Opening…' : 'View Reflection'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onRequestDelete(entry)}
+                  disabled={openingRunId !== null}
+                  className="history-card__delete"
+                  aria-label={`Delete ${entry.careerTitle} run`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </li>
           )
         })}
@@ -119,6 +133,9 @@ function History() {
   // 'all', or a "YYYY-MM-DD" key from the date dropdown.
   const [dateFilter, setDateFilter] = useState('all')
   const [showBackToTop, setShowBackToTop] = useState(false)
+  // The entry pending a delete confirmation (null when the modal is closed).
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -233,6 +250,34 @@ function History() {
     }
   }
 
+  async function handleConfirmDelete() {
+    if (!deleteTarget || isDeleting) return
+    setIsDeleting(true)
+    setErrorMessage('')
+    const token = localStorage.getItem('authToken')
+
+    try {
+      const response = await fetch(`${SIMULATION_API_BASE}/${deleteTarget.runId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!response.ok) {
+        setIsDeleting(false)
+        await handleFailedResponse(response)
+        return
+      }
+
+      setEntries((prev) => prev.filter((entry) => entry.runId !== deleteTarget.runId))
+      setDeleteTarget(null)
+    } catch (err) {
+      setErrorMessage(
+        err.message || 'Something went wrong while deleting this run.',
+      )
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <div className="history night-sky-bg min-h-screen w-full pl-[76px] font-sans text-[#f2e9dc] sm:pl-[236px]">
       <PrivateNavbar />
@@ -305,6 +350,7 @@ function History() {
                 group={group}
                 openingRunId={openingRunId}
                 onViewReflection={handleViewReflection}
+                onRequestDelete={setDeleteTarget}
               />
             ))}
           </>
@@ -321,6 +367,15 @@ function History() {
       >
         <img src={backToTopIcon} alt="" />
       </button>
+
+      {deleteTarget && (
+        <DeleteRunModal
+          careerTitle={deleteTarget.careerTitle}
+          isDeleting={isDeleting}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   )
 }

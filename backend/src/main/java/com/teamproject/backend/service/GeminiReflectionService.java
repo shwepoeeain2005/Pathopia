@@ -5,14 +5,13 @@ import com.teamproject.backend.model.Career;
 import com.teamproject.backend.model.SimulationRun;
 import tools.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.RestTemplate;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -28,32 +27,37 @@ public class GeminiReflectionService {
      *   but is normally pointed at a Cloudflare Worker reverse proxy, because
      *   Google geo-blocks the API in our region (no VPN needed this way).</li>
      *   <li>{@code GEMINI_MODEL} — the model id. Defaults to
-     *   {@code gemini-2.5-flash}, which has a far higher free-tier
-     *   requests-per-day limit than the newest models; override in {@code .env}
-     *   to switch.</li>
+     *   {@code gemini-3.6-flash}. An older model would normally have a higher
+     *   free-tier requests-per-day limit, but on this API key every older Flash
+     *   model (e.g. {@code gemini-2.5-flash}) returns 404 "no longer available
+     *   to new users" — so this is the only model actually usable here, despite
+     *   its tighter daily quota. Override in {@code .env} if a different key
+     *   with access to an older model is ever used.</li>
      * </ul>
      */
     private final String geminiUrl;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final RestTemplate restTemplate;
+    private final HttpClient httpClient;
 
     public GeminiReflectionService(
             @Value("${GEMINI_API_KEY}") String apiKey,
             @Value("${GEMINI_API_BASE_URL:https://generativelanguage.googleapis.com}") String baseUrl,
-            @Value("${GEMINI_MODEL:gemini-2.5-flash}") String model) {
+            @Value("${GEMINI_MODEL:gemini-3.6-flash}") String model) {
         this.apiKey = apiKey;
         this.geminiUrl = baseUrl.replaceAll("/+$", "")
                 + "/v1beta/models/" + model.trim() + ":generateContent";
 
-        // Reflection calls are slow (tens of seconds) but must not hang
-        // forever — running on a background pool, a stuck socket would pin a
-        // thread indefinitely (the old code used a bare RestTemplate with no
-        // timeouts at all).
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(10_000);
-        factory.setReadTimeout(120_000);
-        this.restTemplate = new RestTemplate(factory);
+        // java.net.http.HttpClient (not the legacy HttpURLConnection-based
+        // RestTemplate factory) — its TLS/HTTP2 stack negotiates cleanly with
+        // Cloudflare's edge, where the old HttpURLConnection client was seeing
+        // its connections reset before the request ever reached the Worker
+        // (confirmed via zero events in Cloudflare's live Observability log
+        // during a hung request).
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(25))
+                .version(HttpClient.Version.HTTP_2)
+                .build();
     }
 
     /**
@@ -235,14 +239,22 @@ public class GeminiReflectionService {
         for (int attempt = 1; ; attempt++) {
             try {
                 return callGemini(prompt);
-            } catch (HttpStatusCodeException e) {
-                int code = e.getStatusCode().value();
-                boolean retryable = e.getStatusCode().is5xxServerError() || code == 429;
+            } catch (GeminiHttpException e) {
+                boolean retryable = e.statusCode >= 500 || e.statusCode == 429;
                 if (!retryable || attempt >= MAX_GEMINI_ATTEMPTS) {
                     throw e;
                 }
                 sleep(attempt * 3000L + ThreadLocalRandom.current().nextLong(1500));
             }
+        }
+    }
+
+    private static final class GeminiHttpException extends RuntimeException {
+        final int statusCode;
+
+        GeminiHttpException(int statusCode, String body) {
+            super("Gemini returned HTTP " + statusCode + ": " + body);
+            this.statusCode = statusCode;
         }
     }
 
@@ -259,21 +271,37 @@ public class GeminiReflectionService {
         Map<String, Object> part = Map.of("text", prompt);
         Map<String, Object> content = Map.of("parts", List.of(part));
         // maxOutputTokens is generous — one response now carries all four
-        // sections, so it must not be cut off mid-JSON.
+        // sections, so it must not be cut off mid-JSON. (thinkingConfig was
+        // dropped — gemini-3.6-flash rejects it with 400 INVALID_ARGUMENT,
+        // unlike the 2.5-series models it was documented for.)
         Map<String, Object> body = Map.of(
                 "contents", List.of(content),
-                "generationConfig", Map.of("maxOutputTokens", 4000));
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+                "generationConfig", Map.of(
+                        "maxOutputTokens", 4000));
 
         String urlWithKey = geminiUrl + "?key=" + apiKey;
+        String jsonBody = objectMapper.writeValueAsString(body);
 
-        Map response = restTemplate.postForObject(urlWithKey, requestEntity, Map.class);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(urlWithKey))
+                .header("Content-Type", "application/json")
+                .timeout(Duration.ofSeconds(120))
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
 
-        List<Map> candidates = (List<Map>) response.get("candidates");
+        HttpResponse<String> response;
+        try {
+            response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (Exception e) {
+            throw new RuntimeException("Gemini request failed: " + e.getMessage(), e);
+        }
+
+        if (response.statusCode() >= 300) {
+            throw new GeminiHttpException(response.statusCode(), response.body());
+        }
+
+        Map responseBody = objectMapper.readValue(response.body(), Map.class);
+        List<Map> candidates = (List<Map>) responseBody.get("candidates");
         Map firstCandidate = candidates.get(0);
         Map contentObj = (Map) firstCandidate.get("content");
         List<Map> parts = (List<Map>) contentObj.get("parts");

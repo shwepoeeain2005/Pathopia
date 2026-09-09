@@ -58,9 +58,10 @@ public class SimulationController {
     }
 
     @DeleteMapping("/{runId}")
-    public ResponseEntity<?> deleteRun(@PathVariable String runId) {
+    public ResponseEntity<?> deleteRun(@PathVariable String runId, Authentication authentication) {
         try {
-            simulationService.deleteRun(UUID.fromString(runId));
+            UUID userId = UUID.fromString(authentication.getName());
+            simulationService.deleteRun(UUID.fromString(runId), userId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

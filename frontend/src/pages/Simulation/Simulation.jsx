@@ -43,10 +43,13 @@ const REFLECTION_POLL_INTERVAL_MS = 2000
 // connection a genuine call can be slow, and each re-trigger costs another
 // Gemini request against the free-tier daily quota.
 const REFLECTION_FALLBACK_MS = 90000
-// Give up and show the retry card after this. Generously sized: a single
-// Gemini call plus its retry/backoff can legitimately take a couple of minutes
-// on a poor connection.
-const REFLECTION_HARD_TIMEOUT_MS = 240000
+// Give up and show the retry card after this. Must stay safely above the
+// backend's own worst case: connectTimeout(25s) + readTimeout(120s) per
+// attempt, times up to 2 attempts, plus backoff — ~4.9 minutes on a
+// connection so weak it hits max timeout on every stage. A shorter value
+// here risked the frontend giving up right before the backend would have
+// succeeded.
+const REFLECTION_HARD_TIMEOUT_MS = 330000
 
 // Static replacement for the old AI-generated "What You Experienced"
 // reflection section, shown as its own screen after the final Reality box
@@ -739,9 +742,15 @@ function Simulation() {
     function handleKeyDown(event) {
       if (event.key !== 'Enter') return
       if (allChunksShown || leaveModalOpen || audioModalOpen || realityText) return
+      event.preventDefault()
+      // First press finishes the typewriter animation instantly, matching
+      // "Skip >>"; a second press (line already fully shown) advances to the
+      // next chunk or reveals the choices — the same two-stage behaviour
+      // clicking the dialogue box already gives.
       if (isTyping) {
-        event.preventDefault()
         completeTyping()
+      } else {
+        handleDialogueClick()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -854,7 +863,10 @@ function Simulation() {
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') handleDialogueClick()
+            // Enter is handled globally above (works regardless of focus,
+            // and covers finish-typing + advance in one place) — handling it
+            // here too would double-advance whenever this box has focus.
+            if (e.key === ' ') handleDialogueClick()
           }}
           className={`absolute bottom-0 left-0 right-0 z-20 mx-auto mb-8 w-[92%] max-w-4xl cursor-pointer rounded-3xl border border-[#6b4d94]/40 p-6 transition-all ease-out ${
             showDialogueBox ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
