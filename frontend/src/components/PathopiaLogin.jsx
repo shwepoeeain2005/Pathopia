@@ -51,6 +51,11 @@ const PathopiaLogin = () => {
             localStorage.setItem('userId', result.userId);
             localStorage.setItem('fullName', result.fullName);
             localStorage.setItem('userEmail', result.email);
+            if (result.profilePictureUrl) {
+                localStorage.setItem('profilePictureUrl', result.profilePictureUrl);
+            } else {
+                localStorage.removeItem('profilePictureUrl');
+            }
 
             navigate('/dashboard');
         } catch (err) {

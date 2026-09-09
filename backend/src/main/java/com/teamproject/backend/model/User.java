@@ -21,7 +21,10 @@ public class User {
     @Column(name = "full_name")
     private String fullName;
 
-    @Column(name = "profile_picture_url")
+    // TEXT, not the default varchar(255) — this stores a compressed data URI
+    // (there's no file storage/CDN in this project), which comfortably
+    // exceeds 255 characters even resized small.
+    @Column(name = "profile_picture_url", columnDefinition = "TEXT")
     private String profilePictureUrl;
 
     @Column(name = "created_at", updatable = false)

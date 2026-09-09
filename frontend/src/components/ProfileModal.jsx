@@ -1,11 +1,52 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Camera, Pencil, User as UserIcon, X } from 'lucide-react'
 import CosmicModal from './CosmicModal.jsx'
 
-const PROFILE_API_URL = '/api/auth/profile'
+const PROFILE_ME_URL = '/api/user/me'
+const PROFILE_UPDATE_URL = '/api/user/profile'
+
+// No file storage/CDN in this project — the picture is sent and stored as a
+// compressed data URI. Resizing client-side before upload keeps that URI
+// small enough to comfortably fit in one JSON request and the database's
+// TEXT column, instead of shipping a multi-megabyte original photo.
+const MAX_AVATAR_DIMENSION = 320
+const AVATAR_JPEG_QUALITY = 0.82
+
+function compressImageToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => {
+        const scale = Math.min(1, MAX_AVATAR_DIMENSION / Math.max(img.width, img.height))
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.round(img.width * scale)
+        canvas.height = Math.round(img.height * scale)
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL('image/jpeg', AVATAR_JPEG_QUALITY))
+      }
+      img.onerror = () => reject(new Error('Could not read that image.'))
+      img.src = String(reader.result)
+    }
+    reader.onerror = () => reject(new Error('Could not read that file.'))
+    reader.readAsDataURL(file)
+  })
+}
+
+// The backend returns the real reason in the response body (e.g. "Name
+// cannot be empty."); read it instead of throwing away everything but the
+// status code, so a save failure is actually diagnosable.
+async function readErrorMessage(response) {
+  const text = await response.text()
+  return text || `Update failed with status ${response.status}`
+}
 
 function ProfileModal({ onClose }) {
-  const [avatarPreview, setAvatarPreview] = useState(null)
+  const [avatarPreview, setAvatarPreview] = useState(
+    () => localStorage.getItem('profilePictureUrl') || null,
+  )
+  const [isSavingAvatar, setIsSavingAvatar] = useState(false)
   const [name, setName] = useState(() => localStorage.getItem('fullName') || '')
   const [email] = useState(() => localStorage.getItem('userEmail') || '')
   const [isEditingName, setIsEditingName] = useState(false)
@@ -14,15 +55,73 @@ function ProfileModal({ onClose }) {
   const [error, setError] = useState('')
   const fileInputRef = useRef(null)
 
+  // localStorage is only a cache from the last login/edit — refresh from the
+  // database on open so the modal shows what's actually saved (e.g. if the
+  // picture was set from a different session).
+  useEffect(() => {
+    let cancelled = false
+    async function loadProfile() {
+      const token = localStorage.getItem('authToken')
+      try {
+        const response = await fetch(PROFILE_ME_URL, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!response.ok || cancelled) return
+        const data = await response.json()
+        if (cancelled) return
+
+        if (data.fullName) {
+          setName(data.fullName)
+          setNameDraft(data.fullName)
+          localStorage.setItem('fullName', data.fullName)
+        }
+        if (data.profilePictureUrl) {
+          setAvatarPreview(data.profilePictureUrl)
+          localStorage.setItem('profilePictureUrl', data.profilePictureUrl)
+        }
+      } catch {
+        // Freshness check only — keep whatever localStorage/defaults already
+        // show if this fails, the modal still works from cached values.
+      }
+    }
+    loadProfile()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const handleAvatarClick = () => fileInputRef.current?.click()
 
-  const handleAvatarChange = (e) => {
-    const file = e.target.files?.[0]
+  const handleAvatarChange = async (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = '' // allow picking the same file again later
     if (!file) return
 
-    const reader = new FileReader()
-    reader.onload = () => setAvatarPreview(reader.result)
-    reader.readAsDataURL(file)
+    setError('')
+    setIsSavingAvatar(true)
+    try {
+      const dataUrl = await compressImageToDataUrl(file)
+      const token = localStorage.getItem('authToken')
+      const response = await fetch(PROFILE_UPDATE_URL, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ profilePictureUrl: dataUrl }),
+      })
+
+      if (!response.ok) {
+        throw new Error(await readErrorMessage(response))
+      }
+
+      setAvatarPreview(dataUrl)
+      localStorage.setItem('profilePictureUrl', dataUrl)
+    } catch (err) {
+      setError(err.message || 'Could not save your profile picture. Please try again.')
+    } finally {
+      setIsSavingAvatar(false)
+    }
   }
 
   const startEditingName = () => {
@@ -48,17 +147,17 @@ function ProfileModal({ onClose }) {
     setError('')
     try {
       const token = localStorage.getItem('authToken')
-      const response = await fetch(PROFILE_API_URL, {
+      const response = await fetch(PROFILE_UPDATE_URL, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name: trimmed }),
+        body: JSON.stringify({ fullName: trimmed }),
       })
 
       if (!response.ok) {
-        throw new Error(`Update failed with status ${response.status}`)
+        throw new Error(await readErrorMessage(response))
       }
 
       setName(trimmed)
@@ -94,10 +193,13 @@ function ProfileModal({ onClose }) {
           <div className="group relative w-28 h-28">
             <div
               className="w-28 h-28 rounded-full flex items-center justify-center shadow-lg border-2 border-[#d9a94f]/40 overflow-hidden"
-              style={{ background: 'radial-gradient(circle, rgba(217,169,79,0.4) 0%, rgba(45,33,84,0.8) 80%)' }}
+              style={{
+                background: 'radial-gradient(circle, rgba(217,169,79,0.4) 0%, rgba(45,33,84,0.8) 80%)',
+                opacity: isSavingAvatar ? 0.6 : 1,
+              }}
             >
               {avatarPreview ? (
-                <img src={avatarPreview} alt="Profile preview" className="w-full h-full object-cover" />
+                <img src={avatarPreview} alt="Profile" className="w-full h-full object-cover" />
               ) : (
                 <UserIcon className="w-14 h-14 text-[#d9a94f]" strokeWidth={1.5} />
               )}
@@ -106,7 +208,8 @@ function ProfileModal({ onClose }) {
             <button
               type="button"
               onClick={handleAvatarClick}
-              className="absolute bottom-0 right-0 flex items-center justify-center w-9 h-9 rounded-full bg-[#d9a94f] text-[#14102b] border-2 border-[#14102b] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+              disabled={isSavingAvatar}
+              className="absolute bottom-0 right-0 flex items-center justify-center w-9 h-9 rounded-full bg-[#d9a94f] text-[#14102b] border-2 border-[#14102b] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity disabled:cursor-not-allowed"
               aria-label="Change profile picture"
             >
               <Camera className="w-4 h-4" />

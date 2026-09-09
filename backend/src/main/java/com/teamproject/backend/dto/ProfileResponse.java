@@ -1,27 +1,15 @@
 package com.teamproject.backend.dto;
 
-public class AuthResponse {
+public class ProfileResponse {
 
-    private String token;
-    private String userId;
     private String fullName;
     private String email;
     private String profilePictureUrl;
 
-    public AuthResponse(String token, String userId, String fullName, String email, String profilePictureUrl) {
-        this.token = token;
-        this.userId = userId;
+    public ProfileResponse(String fullName, String email, String profilePictureUrl) {
         this.fullName = fullName;
         this.email = email;
         this.profilePictureUrl = profilePictureUrl;
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    public String getUserId() {
-        return userId;
     }
 
     public String getFullName() {
