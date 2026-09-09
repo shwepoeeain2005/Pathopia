@@ -85,6 +85,7 @@ function PrivateNavbar() {
   const navigate = useNavigate()
   const [activeModal, setActiveModal] = useState(null)
   const userName = localStorage.getItem('fullName') || 'Your Profile'
+  const avatarUrl = localStorage.getItem('profilePictureUrl')
 
   const closeModal = () => setActiveModal(null)
   const toggleModal = (name) => setActiveModal((current) => (current === name ? null : name))
@@ -102,7 +103,7 @@ function PrivateNavbar() {
         className="private-nav__profile private-nav__profile--floating"
       >
         <span className="private-nav__avatar">
-          <ProfileIcon />
+          {avatarUrl ? <img src={avatarUrl} alt="" /> : <ProfileIcon />}
         </span>
         <span className="private-nav__profile-name">{userName}</span>
       </button>

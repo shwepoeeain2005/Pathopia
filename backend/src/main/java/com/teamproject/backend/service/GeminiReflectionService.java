@@ -4,94 +4,82 @@ import com.teamproject.backend.dto.ReflectionSections;
 import com.teamproject.backend.model.Career;
 import com.teamproject.backend.model.SimulationRun;
 import tools.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.RestTemplate;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class GeminiReflectionService {
 
     private final String apiKey;
-    private final Executor reflectionExecutor;
 
     /**
-     * Base host for the Gemini REST API. Defaults to Google directly, but can be
-     * pointed at a reverse proxy (e.g. a Cloudflare Worker) via the
-     * {@code GEMINI_API_BASE_URL} env var. This is how we reach Gemini from
-     * regions Google geo-blocks without running a VPN on the machine.
+     * Full Gemini {@code generateContent} endpoint, assembled from two settings:
+     * <ul>
+     *   <li>{@code GEMINI_API_BASE_URL} — the host. Defaults to Google directly,
+     *   but is normally pointed at a Cloudflare Worker reverse proxy, because
+     *   Google geo-blocks the API in our region (no VPN needed this way).</li>
+     *   <li>{@code GEMINI_MODEL} — the model id. Defaults to
+     *   {@code gemini-3.6-flash}. An older model would normally have a higher
+     *   free-tier requests-per-day limit, but on this API key every older Flash
+     *   model (e.g. {@code gemini-2.5-flash}) returns 404 "no longer available
+     *   to new users" — so this is the only model actually usable here, despite
+     *   its tighter daily quota. Override in {@code .env} if a different key
+     *   with access to an older model is ever used.</li>
+     * </ul>
      */
     private final String geminiUrl;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final RestTemplate restTemplate;
+    private final HttpClient httpClient;
 
     public GeminiReflectionService(
             @Value("${GEMINI_API_KEY}") String apiKey,
             @Value("${GEMINI_API_BASE_URL:https://generativelanguage.googleapis.com}") String baseUrl,
-            @Qualifier("reflectionExecutor") Executor reflectionExecutor) {
+            @Value("${GEMINI_MODEL:gemini-3.6-flash}") String model) {
         this.apiKey = apiKey;
         this.geminiUrl = baseUrl.replaceAll("/+$", "")
-                + "/v1beta/models/gemini-3.6-flash:generateContent";
-        this.reflectionExecutor = reflectionExecutor;
+                + "/v1beta/models/" + model.trim() + ":generateContent";
 
-        // Reflection calls are slow (tens of seconds) but must not hang
-        // forever — running on a background pool, a stuck socket would pin a
-        // thread indefinitely (the old code used a bare RestTemplate with no
-        // timeouts at all).
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(10_000);
-        factory.setReadTimeout(90_000);
-        this.restTemplate = new RestTemplate(factory);
+        // java.net.http.HttpClient (not the legacy HttpURLConnection-based
+        // RestTemplate factory) — its TLS/HTTP2 stack negotiates cleanly with
+        // Cloudflare's edge, where the old HttpURLConnection client was seeing
+        // its connections reset before the request ever reached the Worker
+        // (confirmed via zero events in Cloudflare's live Observability log
+        // during a hung request).
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(25))
+                .version(HttpClient.Version.HTTP_2)
+                .build();
     }
 
     /**
-     * Generates the reflection as two Gemini calls run in parallel: one for the
-     * "decision pattern / pressure approach" pair, one for the "challenges ahead /
-     * career compatibility" pair. Splitting the work roughly halves the
-     * wall-clock wait versus asking for all sections in a single response.
+     * Generates the reflection in a <b>single</b> Gemini call asking for all four
+     * sections at once. This was previously two calls run in parallel (slightly
+     * faster wall-clock), but on the free tier the scarce resource is
+     * requests-per-day, not latency — one call per reflection instead of two
+     * doubles how many runs can be reflected on before the daily quota is hit,
+     * and one request is also less likely to partly fail on a weak connection.
      *
      * <p>"whatYouExperienced" is no longer generated here — the frontend shows a
      * static version of that section on its own screen while this runs.
      */
     public ReflectionSections generateReflection(SimulationRun run) {
         Career career = run.getCareer();
-
-        CompletableFuture<String> decisionCall = CompletableFuture.supplyAsync(
-                () -> callGeminiWithRetry(buildDecisionPrompt(run, career)), reflectionExecutor);
-        CompletableFuture<String> challengesCall = CompletableFuture.supplyAsync(
-                () -> callGeminiWithRetry(buildChallengesPrompt(run, career)), reflectionExecutor);
-
-        String decisionRaw;
-        String challengesRaw;
+        String raw;
         try {
-            decisionRaw = decisionCall.join();
-            challengesRaw = challengesCall.join();
-        } catch (CompletionException e) {
-            Throwable cause = e.getCause() != null ? e.getCause() : e;
-            throw new RuntimeException("Gemini reflection call failed: " + cause.getMessage(), cause);
+            raw = callGeminiWithRetry(buildFullPrompt(run, career));
+        } catch (RuntimeException e) {
+            throw new RuntimeException("Gemini reflection call failed: " + e.getMessage(), e);
         }
-
-        ReflectionSections decision = parseSections(decisionRaw);
-        ReflectionSections challenges = parseSections(challengesRaw);
-
-        ReflectionSections merged = new ReflectionSections();
-        merged.setDecisionPattern(decision.getDecisionPattern());
-        merged.setPressureApproach(decision.getPressureApproach());
-        merged.setChallengesAhead(challenges.getChallengesAhead());
-        merged.setCareerCompatibility(challenges.getCareerCompatibility());
-        return merged;
+        return parseSections(raw);
     }
 
     private static final String INTRO = """
@@ -165,46 +153,39 @@ public class GeminiReflectionService {
         );
     }
 
-    private String buildDecisionPrompt(SimulationRun run, Career career) {
+    private String buildFullPrompt(SimulationRun run, Career career) {
         return INTRO + "\n\n" + buildContext(run, career) + "\n" + SHARED_RULES + "\n\n" + """
-            FOR THIS RESPONSE, write only these two sections:
+            Write ALL FOUR of these sections in one JSON object:
+
             - "decisionPattern": the pattern in how the user tended to make \
             decisions across the playthrough — what they reached for first, where \
             they hesitated, what they seemed to weigh most heavily.
+
             - "pressureApproach": how the user approached the high-pressure, \
             time-sensitive moments specifically, and how that compared with their \
             calmer decisions.
 
-            RETURN EXACTLY THIS JSON SCHEMA (keys in English, values in Burmese):
-            {
-              "decisionPattern": "...",
-              "pressureApproach": "..."
-            }""";
-    }
+            - "challengesAhead": this must be the most detailed and substantial \
+            part of your output. For each challenge or weakness you identify, pair \
+            it with concrete, actionable advice on what specifically the person \
+            could work on or practice to address it — not just naming a risk, but \
+            giving real direction. Reason from the full choice history to ground \
+            each point in something real about how they actually played, not \
+            generic career advice that could apply to anyone. Aim for at least \
+            5-6 sentences, covering 2-3 distinct strength/weakness pairs with \
+            advice attached to each. This section is forward-looking only — do \
+            NOT recap what the user experienced or restate their decision style, \
+            which the earlier sections already cover.
 
-    private String buildChallengesPrompt(SimulationRun run, Career career) {
-        return INTRO + "\n\n" + buildContext(run, career) + "\n" + SHARED_RULES + "\n\n" + """
-            FOR THIS RESPONSE, write only these two sections, and follow these \
-            additional rules:
-            - "challengesAhead" must be the most detailed and substantial part of \
-            your output. For each challenge or weakness you identify, pair it with \
-            concrete, actionable advice on what specifically the person could work \
-            on or practice to address it — not just naming a risk, but giving real \
-            direction. Reason from the full choice history to ground each point in \
-            something real about how they actually played, not generic career \
-            advice that could apply to anyone. Aim for at least 5-6 sentences, \
-            covering 2-3 distinct strength/weakness pairs with advice attached to \
-            each.
-            - This response is forward-looking only. Do NOT recap what the user \
-            experienced or restate their general decision style — that is covered \
-            in another part of the reflection.
-            - "careerCompatibility" MUST include an explicit statement that this \
+            - "careerCompatibility": MUST include an explicit statement that this \
             simulation cannot determine the user's future, before offering any \
             suggestion. Keep this section SHORT — 3-4 sentences, a closing note, \
             not an extended analysis.
 
             RETURN EXACTLY THIS JSON SCHEMA (keys in English, values in Burmese):
             {
+              "decisionPattern": "...",
+              "pressureApproach": "...",
               "challengesAhead": "...",
               "careerCompatibility": "..."
             }""";
@@ -245,26 +226,35 @@ public class GeminiReflectionService {
         }
     }
 
-    private static final int MAX_GEMINI_ATTEMPTS = 4;
+    private static final int MAX_GEMINI_ATTEMPTS = 2;
 
     /**
-     * {@code gemini-3.6-flash} regularly returns 503 ("experiencing high
-     * demand") and occasionally 429 under load. Those are transient — retry a
-     * few times with backoff (plus jitter, so the two parallel calls don't
-     * lock-step) before giving up.
+     * Gemini can return 503 ("experiencing high demand") and occasionally 429
+     * under load. Those are transient — retry once with backoff (plus jitter)
+     * before giving up. Kept deliberately low: on the free tier every attempt
+     * counts against the daily request quota, so a long retry loop can burn the
+     * whole day's budget on a single struggling reflection.
      */
     private String callGeminiWithRetry(String prompt) {
         for (int attempt = 1; ; attempt++) {
             try {
                 return callGemini(prompt);
-            } catch (HttpStatusCodeException e) {
-                int code = e.getStatusCode().value();
-                boolean retryable = e.getStatusCode().is5xxServerError() || code == 429;
+            } catch (GeminiHttpException e) {
+                boolean retryable = e.statusCode >= 500 || e.statusCode == 429;
                 if (!retryable || attempt >= MAX_GEMINI_ATTEMPTS) {
                     throw e;
                 }
                 sleep(attempt * 3000L + ThreadLocalRandom.current().nextLong(1500));
             }
+        }
+    }
+
+    private static final class GeminiHttpException extends RuntimeException {
+        final int statusCode;
+
+        GeminiHttpException(int statusCode, String body) {
+            super("Gemini returned HTTP " + statusCode + ": " + body);
+            this.statusCode = statusCode;
         }
     }
 
@@ -280,18 +270,38 @@ public class GeminiReflectionService {
     private String callGemini(String prompt) {
         Map<String, Object> part = Map.of("text", prompt);
         Map<String, Object> content = Map.of("parts", List.of(part));
-        Map<String, Object> body = Map.of("contents", List.of(content));
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+        // maxOutputTokens is generous — one response now carries all four
+        // sections, so it must not be cut off mid-JSON. (thinkingConfig was
+        // dropped — gemini-3.6-flash rejects it with 400 INVALID_ARGUMENT,
+        // unlike the 2.5-series models it was documented for.)
+        Map<String, Object> body = Map.of(
+                "contents", List.of(content),
+                "generationConfig", Map.of(
+                        "maxOutputTokens", 4000));
 
         String urlWithKey = geminiUrl + "?key=" + apiKey;
+        String jsonBody = objectMapper.writeValueAsString(body);
 
-        Map response = restTemplate.postForObject(urlWithKey, requestEntity, Map.class);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(urlWithKey))
+                .header("Content-Type", "application/json")
+                .timeout(Duration.ofSeconds(120))
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
 
-        List<Map> candidates = (List<Map>) response.get("candidates");
+        HttpResponse<String> response;
+        try {
+            response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (Exception e) {
+            throw new RuntimeException("Gemini request failed: " + e.getMessage(), e);
+        }
+
+        if (response.statusCode() >= 300) {
+            throw new GeminiHttpException(response.statusCode(), response.body());
+        }
+
+        Map responseBody = objectMapper.readValue(response.body(), Map.class);
+        List<Map> candidates = (List<Map>) responseBody.get("candidates");
         Map firstCandidate = candidates.get(0);
         Map contentObj = (Map) firstCandidate.get("content");
         List<Map> parts = (List<Map>) contentObj.get("parts");

@@ -75,16 +75,27 @@
 .dashboard__welcome-content {
   position: relative;
   z-index: 2;
-  max-width: 460px;
+  /* Wide enough that "Welcome back, <name>!" fits on one line for a normal
+     name at the heading's font-size below — 460px was too narrow and forced
+     a wrap even for a short name like "Poe Eain". */
+  max-width: 640px;
 }
 
 .dashboard__welcome-heading {
   font-family: var(--font-serif);
   font-weight: 500;
-  font-size: 2.7rem;
+  /* Slightly down from 2.7rem so more names fit the single line the
+     nowrap below now enforces. */
+  font-size: 2.4rem;
+  line-height: 1.25;
   color: var(--gold);
   margin: 0 0 12px;
   text-shadow: 0 2px 12px rgba(20, 16, 43, 0.7);
+  /* The greeting must stay one line — an unusually long name is truncated
+     with an ellipsis instead of wrapping onto a second line. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dashboard__welcome-subtext {
@@ -220,5 +231,18 @@
 
   .dashboard__actions {
     max-width: none;
+  }
+
+  .dashboard__welcome-content {
+    max-width: none;
+  }
+
+  /* On a narrow viewport there isn't room to keep the greeting on one line
+     without clipping it — allow it to wrap back to two lines here instead. */
+  .dashboard__welcome-heading {
+    font-size: 1.9rem;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
   }
 }
