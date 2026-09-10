@@ -12,3 +12,7 @@ frontend/dist/
 
 # OS
 .DS_Store
+
+# Local-only DB backups with real user data -- never commit these
+database/*-full-local-backup.sql
+database/*-full-backup.sql
