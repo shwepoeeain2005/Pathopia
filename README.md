@@ -44,9 +44,6 @@ The reflection describes the patterns it observed across the player's choices.
 
 The radar chart summarizes the tendencies observed during the simulation.
 
-<details>
-<summary>See more of the AI reflection</summary>
-
 #### How You Approached Pressure
 
 ![Reflection on how the player handled pressure, paired with an illustrated clock](SS/AI%20Reflection%20Page%20%28How%20You%20Approached%20Pressure%29.png)
@@ -58,8 +55,6 @@ The radar chart summarizes the tendencies observed during the simulation.
 #### Career Compatibility
 
 ![Career compatibility reflection, paired with an illustrated briefcase](SS/AI%20Reflection%20Page%20%28Career%20Compatibility.png)
-
-</details>
 
 ## How it works
 
