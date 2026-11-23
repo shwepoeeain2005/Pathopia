@@ -10,6 +10,57 @@ Built solo as a semester keystone project for CST-4105 "Enterprise
 Applications Development using Java" at the University of Information
 Technology, Myanmar.
 
+![Pathopia public landing page with an illustrated city skyline at dusk](SS/Landing%20Page.png)
+
+## Design & Gameplay
+
+### Dashboard
+
+![Signed-in Pathopia dashboard with options to start or continue a simulation and revisit recent history](SS/Dashboard%20Page.png)
+
+### Choose a career
+
+![Career selection screen with illustrated Data Analyst and Project Manager cards](SS/Career%20Selection%20Page.png)
+
+Each career has its own illustrated card and color palette.
+
+### Play through a workday
+
+![A lead developer speaks to the player in an illustrated project office](SS/Simulation%20Page%20%28dialouge%20view%29.png)
+
+In this Project Manager scenario, the lead developer presents a workplace dilemma.
+
+![Four choices appear over the same project office scene](SS/Simulation%20Page%20%28choice%20selection%20view%29.png)
+
+The player chooses how to respond, shaping what happens next and contributing to the final reflection.
+
+### Reflect on your decisions
+
+![AI reflection on the player's decision pattern next to a puzzle illustration](SS/AI%20Reflection%20Page%20%28Your%20Decision%20Pattern%29.png)
+
+The reflection describes the patterns it observed across the player's choices.
+
+![Radar chart displaying seven tendencies observed during the Project Manager simulation](SS/AL%20Reflection%20Page%20%28Tendencies%20Observed%29.png)
+
+The radar chart summarizes the tendencies observed during the simulation.
+
+<details>
+<summary>See more of the AI reflection</summary>
+
+#### How You Approached Pressure
+
+![Reflection on how the player handled pressure, paired with an illustrated clock](SS/AI%20Reflection%20Page%20%28How%20You%20Approached%20Pressure%29.png)
+
+#### Challenges You May Face
+
+![Reflection on potential challenges, paired with a target illustration](SS/AI%20Reflection%20Page%20%28Challenges%20You%20May%20Face%29.png)
+
+#### Career Compatibility
+
+![Career compatibility reflection, paired with an illustrated briefcase](SS/AI%20Reflection%20Page%20%28Career%20Compatibility.png)
+
+</details>
+
 ## How it works
 
 1. **Pick a career** from the available options (each with its own set of
